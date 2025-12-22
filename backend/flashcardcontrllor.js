@@ -1,20 +1,17 @@
-const { generateFlashcards } = require('./aiservice')
+const { generateFlashcards } = require('./aiservice');
 
 async function createFlashcards(req, res) {
-    try {
-        const { topic } = req.body
-        if (!topic) {
-            return res.status(400).json({ error: 'Topic is required' })
-        }
-        console.log(req.headers['content-type'])
-        console.log(req.body)
-        const data = await generateFlashcards(topic)
-        res.json(data)
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to create flashcards' })
-    }
+  try {
+    const { topic } = req.body;
+
+    const text = await generateFlashcards(topic);
+
+    //THIS IS THE IMPORTANT LINE THAT SENDS BACK THE RESPONSE TO FRONTEND
+    res.send(text);  
+  } catch (err) {
+    res.status(500).send("Failed to generate flashcards");
+  }
 }
 
-module.exports = { createFlashcards }
-
+module.exports = { createFlashcards };
 
