@@ -1,27 +1,22 @@
 {
-  "dependencies": {
-    "@google/genai": "^1.34.0",
-    "dotenv": "^17.2.3",
-    "express": "^5.2.1",
-    "nodemon": "^3.1.11"
-  },
-  "name": "5-min-learn",
+  "name": "backend",
   "version": "1.0.0",
-  "description": "LearnIn5 is an AI-powered learning tool that helps students understand any topic in 5 minutes using simple, structured flashcards.",
-  "main": "index.js",
+  "description": "",
+  "main": "aiservice.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/manav-gill/learnin5-ai-flashcards.git"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/manav-gill/learnin5-ai-flashcards/issues"
+  "dependencies": {
+    "@google/genai": "^1.34.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1"
   },
-  "homepage": "https://github.com/manav-gill/learnin5-ai-flashcards#readme"
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
 }

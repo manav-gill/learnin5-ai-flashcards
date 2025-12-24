@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LearnIn5</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="main_section">
+    <div class="navbar">
+      <div class="logo">
+        <span>LearnIn5</span>
+      </div>
+
+      <div class="navoption">
+        <li><a href="#">Home</a></li>
+        <li><a href="#topic-section">Topic</a></li>
+        <li><a href="#how">How It Works</a></li>
+        <li><a href="#about-section">About</a></li>
+        <div class="start_learn"> <button>Explore</button></div>
+
+      </div>
+    </div>
+    <div class="tagline">
+      <section class="learnin5-section">
+
+        <div class="learnin5-container">
+
+          <h1>Learn any topic with clear explanations</h1>
+          <div class="button2">
+
+            <button class="learnin5-btn">Start learning</button>
+          </div>
+
+          <div class="learnin5-note">
+            ✔ Free • Learn fast • 5-minute lessons
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+  <section class="how-section" id="how">
+    <h2>How LearnIn5 works</h2>
+
+    <div class="how-cards">
+      <div class="how-card">
+        <span class="step">1</span>
+        <h3>Choose a topic</h3>
+        <p>Select any concept you want to learn in seconds.</p>
+      </div>
+
+      <div class="how-card2">
+        <span class="step">2</span>
+        <h3>Learn in 5 minutes</h3>
+        <p>Get simple explanations with clear examples.</p>
+      </div>
+
+      <div class="how-card3">
+        <span class="step">3</span>
+        <h3>Practice or move ahead</h3>
+        <p>Revise quickly or jump to the next topic.</p>
+      </div>
+    </div>
+  </section>
+  <section id="topic-section" class="topic-section">
+    <div class="topic-container">
+      <h2>What can you learn here?</h2>
+
+      <div class="topic-grid">
+        <div class="topic-item">Programming & computer basics</div>
+        <div class="topic-item">Mathematics & statistics</div>
+        <div class="topic-item">Web & design fundamentals</div>
+        <div class="topic-item">Academic & exam concepts</div>
+        <div class="topic-item">General curiosity topics</div>
+        <div class="topic-item">>Data structures & algorithms</div>
+        <div class="topic-item">Artificial intelligence basics</div>
+        <div class="topic-item">Everyday technology explained</div>
+      </div>
+
+      <p class="topic-example">
+        Examples: Arrays, Mean vs Median, GST, How the Internet works
+      </p>
+    </div>
+  </section>
+
+  <section id="learn-section" class="learn-section">
+    <h2>What do you want to learn?</h2>
+
+    <!-- main entry point where i connect backend api to frontend -->
+    <form id="flashcardForm">
+
+      <div class="learn-box">
+        <input type="text" id="topicInput" placeholder="e.g. Arrays, Binary Search, CSS Flexbox" />
+        <button type="submit">Learn in 5 minutes</button>
+      </div>
+    </form>
+
+    <!-- <div id="result" class="result-box"></div> -->
+  </section>
+  <section id="flashcards-section" class="flashcards-section hidden">
+    <h2 id="flashcard-title">Learning: Arrays</h2>
+
+    <div class="flashcard-container">
+      <div class="flashcard" id="flashcard">
+        <h3 id="card-minute">Minute 1</h3>
+        <p id="card-content">
+          An array is a collection of elements stored in contiguous memory.
+        </p>
+      </div>
+    </div>
+
+    <div class="flashcard-controls">
+      <button id="prevBtn">← Previous</button>
+      <button id="nextBtn">Next →</button>
+    </div>
+  </section>
+
+  <!-- ================= ABOUT SECTION ================= -->
+  <section id="about-section" class="about-section">
+    <div class="about-container">
+      <h2>About LearnIn5</h2>
+
+      <p class="about-intro">
+        LearnIn5 is an AI-powered learning platform that explains any concept in
+        just 5 minutes using clear, simple flashcards.
+      </p>
+
+      <p>
+        Many learners struggle with long videos and complex explanations.
+        LearnIn5 was created to make learning faster, simpler, and more focused.
+      </p>
+
+      <h3>Who is LearnIn5 for?</h3>
+      <ul>
+        <li>Students from any academic background</li>
+        <li>Beginners looking for simple explanations</li>
+        <li>Exam-time revision learners</li>
+        <li>Anyone curious to learn something new</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ================= WHY LEARNIN5 ================= -->
+  <section id="why-section" class="why-section">
+    <div class="why-container">
+      <h2>Why LearnIn5?</h2>
+
+      <div class="why-grid">
+        <div class="why-card">No long videos or heavy reading</div>
+        <div class="why-card">Clear explanations in minutes</div>
+        <div class="why-card">One question at a time learning</div>
+        <div class="why-card">Perfect for quick revision</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= WHO IS THIS FOR ================= -->
+  <section class="audience-section">
+    <div class="audience-container">
+      <h2>Who Can Use LearnIn5?</h2>
+
+      <div class="audience-grid">
+        <div class="audience-card">School Students</div>
+        <div class="audience-card">College Students</div>
+        <div class="audience-card">Non-Technical Learners</div>
+        <div class="audience-card">Exam Preparation</div>
+        <div class="audience-card">Curious Learners</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FAQ SECTION ================= -->
+  <section class="faq-section">
+    <div class="faq-container">
+      <h2>Frequently Asked Questions</h2>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Is LearnIn5 free to use?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Yes. LearnIn5 is completely free and does not require any sign-up.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Do I need an account?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>No account or login is required. You can start learning instantly.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Can I ask non-technical questions?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Yes. You can ask academic, technical, or general curiosity questions.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Is LearnIn5 useful for exams?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Yes. It is designed for quick revision and concept clarity.</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">
+          How does LearnIn5 explain topics in 5 minutes?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>
+            LearnIn5 breaks each concept into short, focused flashcards so you can
+            understand the idea quickly without long explanations.
+          </p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Can I ask the same question in different ways?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>
+            Yes. You can rephrase or ask the same question again to get a clearer
+            understanding.
+          </p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Is LearnIn5 suitable for non-technical users?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>
+            Absolutely. LearnIn5 is designed for both technical and non-technical
+            learners.
+          </p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Does LearnIn5 give step-by-step explanations?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>
+            Yes. Concepts are explained step by step using simple language and clear
+            examples.
+          </p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Can I use LearnIn5 during exams or quick revision?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>
+            Yes. LearnIn5 is ideal for quick revision when time is limited.
+          </p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Are the explanations very detailed?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>
+            The explanations focus on clarity and core concepts rather than deep,
+            lengthy details.
+          </p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Can I learn multiple topics in one session?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>
+            Yes. You can ask multiple questions one after another without any limits.
+          </p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Does LearnIn5 store my questions?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>
+            No personal data is stored. Questions are used only to generate
+            explanations.
+          </p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Can beginners understand the explanations?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>
+            Yes. LearnIn5 is beginner-friendly and does not assume prior knowledge.
+          </p>
+        </div>
+      </div>
+
+
+    </div>
+
+  </section>
+
+
+  <!-- ================= FUTURE PLANS ================= -->
+  <section class="future-section">
+    <div class="future-container">
+      <h2>What’s Next for LearnIn5?</h2>
+      <p class="future-sub">
+        These features are planned to make learning even better.
+      </p>
+
+      <div class="future-grid">
+        <div class="future-card">
+          <span>📌</span>
+          <h4>Saving learned topics</h4>
+          <p>Bookmark topics to revisit anytime.</p>
+        </div>
+
+        <div class="future-card">
+          <span>📝</span>
+          <h4>Practice questions</h4>
+          <p>Test your understanding with short questions.</p>
+        </div>
+
+        <div class="future-card">
+          <span>🎯</span>
+          <h4>Personalized learning</h4>
+          <p>Content tailored to your learning style.</p>
+        </div>
+
+        <div class="future-card">
+          <span>📱</span>
+          <h4>Mobile-friendly experience</h4>
+          <p>Optimized learning on any device.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-container">
+
+      <div class="footer-brand">
+        <h3>LearnIn5</h3>
+        <p>Learn any topic in just 5 minutes.</p>
+      </div>
+
+      <div class="footer-links">
+        <h4>Product</h4>
+        <a href="#how">How It Works</a>
+        <a href="#topic-section">Topics</a>
+        <a href="#why-section">Why LearnIn5</a>
+      </div>
+
+      <div class="footer-links">
+        <h4>Resources</h4>
+        <a href="#about-section">About</a>
+        <a href="#">Contact</a>
+       <a href="https://github.com/manav-gill/learnin5-ai-flashcards.git"
+   target="_blank"
+   rel="noopener noreferrer">
+  GitHub
+</a>
+
+      </div>
+
+      <div class="footer-links">
+        <h4>Legal</h4>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <span class="copyright">© 2025 LearnIn5</span>
+      </div>
+
+    </div>
+    <script src="script.js"></script>
+  </footer>
+
+
+</body>
+
+</html>
