@@ -114,3 +114,68 @@ document.getElementsByClassName("learnin5-btn")[0].addEventListener("click", () 
     .getElementById("flashcardForm")
     .scrollIntoView({ behavior: "smooth" });
 });
+document.querySelector('a[href="#topic-section"]')
+  ?.addEventListener('click', function (e) {
+    e.preventDefault();
+    document.querySelector('#topic-section')
+      .scrollIntoView({ behavior: 'smooth' });
+  });
+document.querySelector('a[href="#how"]')
+  ?.addEventListener('click', function (e) {
+    e.preventDefault();
+    document.querySelector('#how')
+      .scrollIntoView({ behavior: 'smooth' });
+  });
+document.querySelector('a[href="#about-section"]')
+  ?.addEventListener('click', function (e) {
+    e.preventDefault();
+    document.querySelector('#about-section')
+      .scrollIntoView({ behavior: 'smooth' });
+  });
+document.querySelector('a[href="#why-section"]')
+  ?.addEventListener('click', function (e) {
+    e.preventDefault();
+    document.querySelector('#why-section')
+      .scrollIntoView({ behavior: 'smooth' });
+  });
+const faqQuestions = document.querySelectorAll('.faq-question');
+
+faqQuestions.forEach(question => {
+  question.addEventListener('click', () => {
+    const item = question.parentElement;
+    const answer = question.nextElementSibling;
+    const icon = question.querySelector('.faq-icon');
+
+    // Close all other FAQs
+    document.querySelectorAll('.faq-answer').forEach(a => {
+      if (a !== answer) {
+        a.style.maxHeight = null;
+      }
+    });
+
+    document.querySelectorAll('.faq-icon').forEach(i => {
+      if (i !== icon) {
+        i.textContent = '+';
+      }
+    });
+
+    // Toggle current FAQ
+    const isOpen = answer.style.maxHeight;
+
+    if (isOpen) {
+      answer.style.maxHeight = null;
+      icon.textContent = '+';
+    } else {
+      answer.style.maxHeight = answer.scrollHeight + 'px';
+      icon.textContent = '−';
+
+      // 🔽 AUTO SCROLL TO THE OPEN FAQ (KEY PART)
+      setTimeout(() => {
+        item.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }, 150); // wait for animation to start
+    }
+  });
+});
