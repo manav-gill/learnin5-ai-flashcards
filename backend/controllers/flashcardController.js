@@ -7,35 +7,35 @@ export const getFlashcardTest = (req, res) => {
 
 const validateTopic = (topic) => {
   if (typeof topic !== "string") {
-    return "Topic must be a string";
+    return { isValid: false, message: "Topic must be a string" };
   }
 
   const cleanTopic = topic.trim();
 
   if (!cleanTopic) {
-    return "Topic is required";
+    return { isValid: false, message: "Topic is required" };
   }
 
   if (cleanTopic.length < 3) {
-    return "Topic must be at least 3 characters";
+    return { isValid: false, message: "Topic must be at least 3 characters" };
   }
 
-  return null;
+  return { isValid: true, cleanTopic };
 };
 
 export const generateFlashcard = (req, res) => {
   try {
-    const topic = req.body?.topic;
-    const validationError = validateTopic(topic);
+    const { topic } = req.body || {};
+    const validation = validateTopic(topic);
 
-    if (validationError) {
+    if (!validation.isValid) {
       return res.status(400).json({
         success: false,
-        message: validationError,
+        message: validation.message,
       });
     }
 
-    const flashcards = getFlashcardsFromAI(topic);
+    const flashcards = getFlashcardsFromAI(validation.cleanTopic);
 
     return res.status(200).json({
       success: true,
