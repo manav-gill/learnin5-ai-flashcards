@@ -1,26 +1,25 @@
 import OpenAI from "openai";
+import { parseFlashcards } from "../utils/parseFlashcards.js";
+import { getCache, setCache } from "../utils/cache.js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const isValidFlashcard = (item) => {
-  return (
-    item &&
-    typeof item.title === "string" &&
-    typeof item.explanation === "string" &&
-    Array.isArray(item.points) &&
-    item.points.length === 2 &&
-    item.points.every((point) => typeof point === "string") &&
-    typeof item.example === "string" &&
-    typeof item.quiz === "string"
-  );
-};
+const CACHE_TTL_MS = 10 * 60 * 1000;
 
 export const getFlashcardsFromAI = async (topic) => {
   try {
     if (!process.env.OPENAI_API_KEY) {
       throw new Error("Missing OPENAI_API_KEY in environment variables");
+    }
+
+    const cacheKey = topic.trim().toLowerCase();
+    const cachedFlashcards = getCache(cacheKey);
+
+    if (cachedFlashcards) {
+      console.log(`Serving flashcards from cache for topic: ${cacheKey}`);
+      return cachedFlashcards;
     }
 
     const completion = await openai.chat.completions.create({
@@ -39,27 +38,12 @@ export const getFlashcardsFromAI = async (topic) => {
       ],
     });
 
-    const rawContent = completion.choices?.[0]?.message?.content;
+    const rawText = completion.choices?.[0]?.message?.content ?? "";
+    const flashcards = parseFlashcards(rawText);
 
-    if (!rawContent) {
-      throw new Error("OpenAI response did not include content");
-    }
+    setCache(cacheKey, flashcards, CACHE_TTL_MS);
 
-    const parsed = JSON.parse(rawContent);
-
-    if (!Array.isArray(parsed)) {
-      throw new Error("OpenAI response is not a JSON array");
-    }
-
-    if (parsed.length !== 5) {
-      throw new Error("OpenAI response must contain exactly 5 flashcards");
-    }
-
-    if (!parsed.every(isValidFlashcard)) {
-      throw new Error("OpenAI response has an invalid flashcard format");
-    }
-
-    return parsed;
+    return flashcards;
   } catch (error) {
     console.error("Error in getFlashcardsFromAI:", error);
     throw error;
