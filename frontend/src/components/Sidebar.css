@@ -1,0 +1,191 @@
+/* ============================================================
+   Sidebar — Glassmorphism Vertical Navigation
+   ============================================================ */
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 200;
+  width: var(--sidebar-width, 76px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-lg) var(--space-sm);
+  gap: var(--space-sm);
+}
+
+/* Inner glass container */
+.sidebar::before {
+  content: '';
+  position: absolute;
+  inset: var(--space-md);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-soft);
+  z-index: -1;
+}
+
+/* ── Logo ──────────────────────────────────────────────────── */
+.sidebar__logo {
+  margin-bottom: var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: var(--space-sm);
+}
+
+.sidebar__logo-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: -0.03em;
+  box-shadow: var(--shadow-glow-purple);
+  transition: transform var(--transition-spring);
+}
+
+.sidebar__logo-icon:hover {
+  transform: scale(1.08);
+}
+
+/* ── Navigation ────────────────────────────────────────────── */
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  flex: 1;
+}
+
+.sidebar__nav-item {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.sidebar__nav-item:hover {
+  background: rgba(167, 139, 250, 0.08);
+  color: var(--text-primary);
+}
+
+.sidebar__nav-item--active {
+  background: rgba(167, 139, 250, 0.12);
+  color: var(--accent-purple);
+  box-shadow: 0 2px 8px rgba(167, 139, 250, 0.12);
+}
+
+.sidebar__nav-item--active .sidebar__nav-icon {
+  transform: scale(1.05);
+}
+
+/* ── Icon ──────────────────────────────────────────────────── */
+.sidebar__nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--transition-fast);
+}
+
+/* ── Tooltip ───────────────────────────────────────────────── */
+.sidebar__nav-tooltip {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--text-primary);
+  color: var(--text-inverse);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  z-index: 300;
+}
+
+.sidebar__nav-tooltip::before {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: var(--text-primary);
+}
+
+.sidebar__nav-item:hover .sidebar__nav-tooltip {
+  opacity: 1;
+}
+
+/* ── Bottom section ────────────────────────────────────────── */
+.sidebar__bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-bottom: var(--space-sm);
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .sidebar {
+    bottom: 0;
+    top: auto;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 68px;
+    flex-direction: row;
+    justify-content: center;
+    padding: var(--space-xs) var(--space-md);
+  }
+
+  .sidebar::before {
+    inset: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-xl);
+  }
+
+  .sidebar__logo {
+    display: none;
+  }
+
+  .sidebar__nav {
+    flex-direction: row;
+    gap: var(--space-xs);
+  }
+
+  .sidebar__bottom {
+    display: none;
+  }
+
+  .sidebar__nav-tooltip {
+    display: none;
+  }
+
+  .sidebar__nav-item {
+    width: 42px;
+    height: 42px;
+  }
+}

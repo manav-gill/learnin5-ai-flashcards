@@ -1,0 +1,40 @@
+/* ============================================================
+   App Shell — Sidebar + Body Layout
+   ============================================================ */
+
+/* ── Layout Grid ───────────────────────────────────────────── */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ── Body (Navbar + Main) ──────────────────────────────────── */
+.app-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-left: var(--sidebar-width);
+  min-height: 100vh;
+}
+
+/* ── Main Content ──────────────────────────────────────────── */
+.app-main {
+  flex: 1;
+  padding: var(--space-xl) var(--space-2xl) var(--space-3xl);
+  max-width: var(--container-max);
+  width: 100%;
+  margin-inline: auto;
+  animation: fadeIn var(--transition-slow) ease-out;
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .app-body {
+    margin-left: 0;
+    padding-bottom: 76px; /* room for bottom sidebar */
+  }
+
+  .app-main {
+    padding: var(--space-md) var(--space-md) var(--space-2xl);
+  }
+}

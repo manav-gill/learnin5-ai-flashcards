@@ -1,0 +1,143 @@
+/* ============================================================
+   Dashboard Page
+   ============================================================ */
+
+.dashboard {
+  animation: fadeIn var(--transition-slow) ease-out;
+}
+
+/* ── Welcome Section ────────────────────────────────────────── */
+.dashboard__welcome {
+  margin-bottom: var(--space-xl);
+}
+
+.dashboard__greeting {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-xs);
+}
+
+.dashboard__greeting span {
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.dashboard__subtitle {
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+/* ── Stats Grid ─────────────────────────────────────────────── */
+.dashboard__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+/* ── Section Title ──────────────────────────────────────────── */
+.dashboard__section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-md);
+}
+
+/* ── Content Grid ───────────────────────────────────────────── */
+.dashboard__content {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+/* ── Activity List ──────────────────────────────────────────── */
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  transition: background var(--transition-fast);
+  cursor: pointer;
+}
+
+.activity-item:hover {
+  background: rgba(167, 139, 250, 0.06);
+}
+
+.activity-item__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.activity-item__dot--purple { background: var(--accent-purple); }
+.activity-item__dot--green  { background: var(--accent-green); }
+.activity-item__dot--blue   { background: var(--accent-blue); }
+.activity-item__dot--pink   { background: var(--accent-pink); }
+
+.activity-item__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-item__title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.activity-item__time {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+/* ── Quick Actions ──────────────────────────────────────────── */
+.quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/* ── Button Row ─────────────────────────────────────────────── */
+.dashboard__button-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .dashboard__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard__content {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard__greeting {
+    font-size: 1.35rem;
+  }
+}

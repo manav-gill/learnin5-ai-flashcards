@@ -3,6 +3,7 @@ import cors from "cors";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import flashcardRoutes from "./routes/flashcardRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 import { PORT } from "./config/env.js";
 
 const app = express();
@@ -28,6 +29,7 @@ app.use(morgan("combined"));
 app.use(apiLimiter);
 
 app.use("/api/flashcards", flashcardRoutes);
+app.use("/api/auth", authRoutes);
 
 app.get("/api/health", (req, res) => {
   res.send("Server is running 🚀");
