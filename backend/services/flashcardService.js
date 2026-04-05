@@ -17,14 +17,42 @@ const hasValidFlashcardShape = (item) => {
     return false;
   }
 
-  const hasTitle = typeof item.title === "string" && item.title.trim().length > 0;
   const hasExplanation = typeof item.explanation === "string" && item.explanation.trim().length > 0;
-  const hasPoints = Array.isArray(item.points) || Array.isArray(item.keyPoints);
+  const hasKeyPoints = Array.isArray(item.keyPoints) && item.keyPoints.every((value) => typeof value === "string");
   const hasExample = typeof item.example === "string" && item.example.trim().length > 0;
   const hasQuiz = typeof item.quiz === "string" && item.quiz.trim().length > 0;
 
-  return hasTitle && hasExplanation && hasPoints && hasExample && hasQuiz;
+  return hasExplanation && hasKeyPoints && hasExample && hasQuiz;
 };
+
+const ensureSchemaShape = (flashcards) => flashcards.map((item) => {
+  const normalizedKeyPoints = Array.isArray(item?.keyPoints)
+    ? item.keyPoints.filter((value) => typeof value === "string" && value.trim())
+    : [];
+
+  while (normalizedKeyPoints.length < 2) {
+    normalizedKeyPoints.push("Point not available.");
+  }
+
+  const safeKeyPoints = normalizedKeyPoints.slice(0, 2);
+
+  return {
+    title: typeof item?.title === "string" && item.title.trim()
+      ? item.title.trim()
+      : "Flashcard",
+    explanation: typeof item?.explanation === "string" && item.explanation.trim()
+      ? item.explanation.trim()
+      : "Explanation unavailable.",
+    keyPoints: safeKeyPoints,
+    points: safeKeyPoints,
+    example: typeof item?.example === "string" && item.example.trim()
+      ? item.example.trim()
+      : "Example unavailable.",
+    quiz: typeof item?.quiz === "string" && item.quiz.trim()
+      ? item.quiz.trim()
+      : "Quiz unavailable.",
+  };
+});
 
 const hasValidFlashcardOutput = (flashcards) => (
   Array.isArray(flashcards)
@@ -79,6 +107,8 @@ export const generateFlashcardsForTopic = async (topic) => {
       });
       parsedFlashcards = buildFallbackFlashcards();
     }
+
+    parsedFlashcards = ensureSchemaShape(parsedFlashcards);
 
     console.log("Parsed flashcards output", {
       topic: cacheKey,

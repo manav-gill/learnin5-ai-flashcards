@@ -76,6 +76,40 @@ const normalizeFlashcard = (item, index) => {
   };
 };
 
+const isFlashcardLikeObject = (value) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.explanation === "string"
+    || Array.isArray(value.keyPoints)
+    || Array.isArray(value.points)
+    || typeof value.example === "string"
+    || typeof value.quiz === "string"
+  );
+};
+
+const toFlashcardArray = (parsed) => {
+  if (Array.isArray(parsed)) {
+    return parsed;
+  }
+
+  if (!parsed || typeof parsed !== "object") {
+    return null;
+  }
+
+  if (Array.isArray(parsed.flashcards)) {
+    return parsed.flashcards;
+  }
+
+  if (isFlashcardLikeObject(parsed)) {
+    return [parsed];
+  }
+
+  return null;
+};
+
 const tryParseJson = (text) => {
   try {
     return JSON.parse(text);
@@ -115,8 +149,10 @@ export const parseFlashcards = (rawText) => {
   for (const candidate of candidates) {
     const parsed = tryParseJson(candidate);
 
-    if (Array.isArray(parsed)) {
-      parsedArray = parsed;
+    const flashcardArray = toFlashcardArray(parsed);
+
+    if (Array.isArray(flashcardArray)) {
+      parsedArray = flashcardArray;
       break;
     }
   }
