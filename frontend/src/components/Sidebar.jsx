@@ -2,18 +2,6 @@ import './Sidebar.css';
 
 const NAV_ITEMS = [
   {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="7" height="7" rx="2" />
-        <rect x="14" y="3" width="7" height="7" rx="2" />
-        <rect x="3" y="14" width="7" height="7" rx="2" />
-        <rect x="14" y="14" width="7" height="7" rx="2" />
-      </svg>
-    ),
-  },
-  {
     id: 'generate',
     label: 'Generate',
     icon: (
@@ -24,21 +12,12 @@ const NAV_ITEMS = [
   },
   {
     id: 'decks',
-    label: 'My Decks',
+    label: 'My Deck',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
         <path d="M8 7h8M8 11h6" />
-      </svg>
-    ),
-  },
-  {
-    id: 'saved',
-    label: 'Saved',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
       </svg>
     ),
   },
@@ -54,7 +33,7 @@ const NAV_ITEMS = [
   },
 ];
 
-export default function Sidebar({ activeItem = 'dashboard', onNavigate }) {
+export default function Sidebar({ activeItem = 'generate', onNavigate }) {
   const handleClick = (id) => {
     onNavigate?.(id);
   };

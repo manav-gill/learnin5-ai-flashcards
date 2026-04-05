@@ -1,26 +1,34 @@
 import OpenAI from "openai";
-import { parseFlashcards } from "../utils/parseFlashcards.js";
-import { getCache, setCache } from "../utils/cache.js";
+import { OPENAI_API_KEY } from "../config/env.js";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let openaiClient = null;
 
-const CACHE_TTL_MS = 10 * 60 * 1000;
+const getOpenAIClient = () => {
+  if (!OPENAI_API_KEY) {
+    throw new Error("Missing OPENAI_API_KEY in environment variables");
+  }
 
-export const getFlashcardsFromAI = async (topic) => {
+  if (!openaiClient) {
+    openaiClient = new OpenAI({
+      apiKey: OPENAI_API_KEY,
+    });
+  }
+
+  return openaiClient;
+};
+
+const buildPrompt = (topic) => (
+  `Generate exactly 5 flashcards about: ${topic}. Each flashcard must have: `
+  + "title, explanation (max 40 words), keyPoints (array of exactly 2 items), example, quiz. "
+  + "Return ONLY a valid JSON array and nothing else."
+);
+
+export const fetchRawFlashcardResponse = async (topic) => {
+  const openai = getOpenAIClient();
+
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error("Missing OPENAI_API_KEY in environment variables");
-    }
-
     const cacheKey = topic.trim().toLowerCase();
-    const cachedFlashcards = getCache(cacheKey);
-
-    if (cachedFlashcards) {
-      console.log(`Serving flashcards from cache for topic: ${cacheKey}`);
-      return cachedFlashcards;
-    }
+    console.log("Requesting flashcards from OpenAI", { topic: cacheKey });
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -33,19 +41,22 @@ export const getFlashcardsFromAI = async (topic) => {
         },
         {
           role: "user",
-          content: `Generate exactly 5 flashcards about: ${topic}. Each flashcard must have: title, explanation (max 40 words), points (array of exactly 2 items), example, quiz. Return ONLY a valid JSON array and nothing else.`,
+          content: buildPrompt(topic),
         },
       ],
     });
 
-    const rawText = completion.choices?.[0]?.message?.content ?? "";
-    const flashcards = parseFlashcards(rawText);
-
-    setCache(cacheKey, flashcards, CACHE_TTL_MS);
-
-    return flashcards;
+    return completion.choices?.[0]?.message?.content ?? "";
   } catch (error) {
-    console.error("Error in getFlashcardsFromAI:", error);
+    const providerPayload = error?.response?.data || error?.error || null;
+
+    console.error("OpenAI request failed", {
+      message: error?.message || "Unknown OpenAI error",
+      status: error?.status || error?.response?.status || null,
+      providerPayload,
+      stack: error?.stack,
+    });
+
     throw error;
   }
 };

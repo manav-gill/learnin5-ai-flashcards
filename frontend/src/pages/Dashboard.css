@@ -37,6 +37,93 @@
   line-height: 1.75;
 }
 
+/* ── Generator Panel ────────────────────────────────────────── */
+.dashboard__generator-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.dashboard__generator-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.dashboard__generator-head .dashboard__section-title {
+  margin-bottom: 0;
+}
+
+.dashboard__generator-subtitle {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+.dashboard__generator-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dashboard__generator-label {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.dashboard__generator-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dashboard__topic-input {
+  flex: 1;
+  min-width: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--text-primary);
+  font-size: var(--fs-sm);
+  font-family: var(--font-family);
+  padding: 11px 12px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+
+.dashboard__topic-input:focus {
+  outline: none;
+  border-color: rgba(139, 92, 246, 0.4);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
+}
+
+.dashboard__topic-input::placeholder {
+  color: var(--text-muted);
+}
+
+.dashboard__generator-error,
+.dashboard__generator-success {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
+
+.dashboard__generator-error {
+  color: #991b1b;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.dashboard__generator-success {
+  color: #065f46;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
 /* ── Stats Grid ─────────────────────────────────────────────── */
 .dashboard__stats {
   display: grid;
@@ -209,6 +296,10 @@
   font-size: var(--fs-lg);
   font-weight: 700;
   color: #7f1d1d;
+}
+
+.generated-flashcards__state-title--neutral {
+  color: var(--text-primary);
 }
 
 .generated-flashcards__state-text {
@@ -387,6 +478,11 @@
 @media (max-width: 640px) {
   .dashboard {
     gap: var(--space-lg);
+  }
+
+  .dashboard__generator-row {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .dashboard__stats {

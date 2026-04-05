@@ -24,7 +24,22 @@
   max-width: var(--container-max);
   width: 100%;
   margin-inline: auto;
-  animation: fadeIn var(--transition-slow) ease-out;
+}
+
+.app-main--transition {
+  animation: page-enter var(--transition-base) ease-out;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ── Responsive ────────────────────────────────────────────── */

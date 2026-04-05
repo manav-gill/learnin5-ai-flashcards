@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../config/env.js";
 
 export const protect = (req, res, next) => {
   const authHeader = req.headers.authorization || "";
@@ -20,11 +21,11 @@ export const protect = (req, res, next) => {
   }
 
   try {
-    if (!process.env.JWT_SECRET) {
+    if (!JWT_SECRET) {
       throw new Error("Missing JWT_SECRET in environment variables");
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
 
     req.user = {
       userId: decoded.userId,

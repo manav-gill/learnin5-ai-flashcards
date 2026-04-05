@@ -6,10 +6,24 @@ async function startServer() {
   const express = (await import("express")).default;
   const cors = (await import("cors")).default;
   const morgan = (await import("morgan")).default;
+  const mongoose = (await import("mongoose")).default;
   const rateLimit = (await import("express-rate-limit")).default;
   const { default: flashcardRoutes } = await import("./routes/flashcardRoutes.js");
   const { default: authRoutes } = await import("./routes/authRoutes.js");
-  const { PORT } = await import("./config/env.js");
+  const { JWT_SECRET, MONGO_URI, PORT } = await import("./config/env.js");
+
+  if (!MONGO_URI) {
+    throw new Error("Missing MongoDB URI. Set MONGO_URI or MONGODB_URL in backend/.env");
+  }
+
+  if (!JWT_SECRET) {
+    throw new Error("Missing JWT_SECRET. Set JWT_SECRET in backend/.env");
+  }
+
+  await mongoose.connect(MONGO_URI, {
+    serverSelectionTimeoutMS: 10000,
+  });
+  console.log("MongoDB connected");
 
   const app = express();
 

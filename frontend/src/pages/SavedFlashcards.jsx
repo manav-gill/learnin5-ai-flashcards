@@ -1,9 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import GlassCard from '../components/GlassCard';
 import Button from '../components/Button';
+import {
+  clearAuthSession,
+  getMyFlashcards,
+  isUnauthorizedError,
+} from '../services/api';
 import './SavedFlashcards.css';
 
-const SAVED_FLASHCARDS_STORAGE_KEY = 'learnin5_saved_flashcards';
 const SAVED_TOPICS_SKELETON_COUNT = 4;
 
 const formatSavedDate = (isoDate) => {
@@ -20,61 +25,129 @@ const formatSavedDate = (isoDate) => {
   });
 };
 
-const loadSavedTopics = () => {
-  if (typeof window === 'undefined') {
-    return { topics: [], hasError: false };
-  }
+const normalizeSavedDeck = (deck, index) => {
+  const flashcards = Array.isArray(deck?.flashcards) ? deck.flashcards : [];
+  const firstCard = flashcards[0];
 
-  try {
-    const rawValue = window.localStorage.getItem(SAVED_FLASHCARDS_STORAGE_KEY);
-
-    if (!rawValue) {
-      return { topics: [], hasError: false };
-    }
-
-    const parsedValue = JSON.parse(rawValue);
-
-    if (!Array.isArray(parsedValue)) {
-      return { topics: [], hasError: true };
-    }
-
-    const topics = parsedValue
-      .filter((item) => item && typeof item === 'object')
-      .map((item, index) => ({
-        id: typeof item.id === 'string' ? item.id : `saved-topic-${index}`,
-        topic: typeof item.topic === 'string' && item.topic.trim() ? item.topic.trim() : 'Untitled topic',
-        preview: typeof item.preview === 'string' && item.preview.trim()
-          ? item.preview.trim()
-          : 'No preview available yet.',
-        savedAt: typeof item.savedAt === 'string' ? item.savedAt : '',
-      }));
-
-    return { topics, hasError: false };
-  } catch {
-    return { topics: [], hasError: true };
-  }
+  return {
+    id: typeof deck?._id === 'string' ? deck._id : `saved-topic-${index}`,
+    topic: typeof deck?.topic === 'string' && deck.topic.trim() ? deck.topic.trim() : 'Untitled topic',
+    preview:
+      typeof firstCard?.explanation === 'string' && firstCard.explanation.trim()
+        ? firstCard.explanation.trim()
+        : 'No preview available yet.',
+    savedAt: typeof deck?.createdAt === 'string' ? deck.createdAt : '',
+    flashcards: flashcards.map((card, cardIndex) => ({
+      title:
+        typeof card?.title === 'string' && card.title.trim()
+          ? card.title.trim()
+          : `Flashcard ${cardIndex + 1}`,
+      explanation:
+        typeof card?.explanation === 'string' && card.explanation.trim()
+          ? card.explanation.trim()
+          : 'Explanation is unavailable.',
+      points: Array.isArray(card?.points)
+        ? card.points.filter((point) => typeof point === 'string' && point.trim()).slice(0, 3)
+        : [],
+      example:
+        typeof card?.example === 'string' && card.example.trim()
+          ? card.example.trim()
+          : 'Example unavailable.',
+      quiz:
+        typeof card?.quiz === 'string' && card.quiz.trim()
+          ? card.quiz.trim()
+          : 'Quiz unavailable.',
+    })),
+  };
 };
 
-export default function SavedFlashcards() {
-  const [{ topics: savedTopics, hasError }] = useState(() => loadSavedTopics());
+export default function SavedFlashcards({
+  title = 'Saved Flashcards',
+  subtitle = 'Your saved topics are organized here for quick revision.',
+}) {
+  const navigate = useNavigate();
+  const [savedTopics, setSavedTopics] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [selectedDeckId, setSelectedDeckId] = useState('');
+
+  const selectedDeck = useMemo(
+    () => savedTopics.find((deck) => deck.id === selectedDeckId) || null,
+    [savedTopics, selectedDeckId]
+  );
 
   useEffect(() => {
-    const loadingTimer = window.setTimeout(() => {
-      setIsLoading(false);
-    }, 420);
+    const fetchSavedDecks = async () => {
+      setIsLoading(true);
+      setErrorMessage('');
 
-    return () => {
-      window.clearTimeout(loadingTimer);
+      try {
+        const response = await getMyFlashcards();
+        const normalizedDecks = response.map((deck, index) => normalizeSavedDeck(deck, index));
+        setSavedTopics(normalizedDecks);
+        setSelectedDeckId(normalizedDecks[0]?.id || '');
+      } catch (error) {
+        if (isUnauthorizedError(error)) {
+          clearAuthSession();
+          navigate('/auth', {
+            replace: true,
+            state: {
+              from: '/my-deck',
+              message: 'Please log in to access your saved flashcards.',
+            },
+          });
+          return;
+        }
+
+        setErrorMessage(error?.message || 'Unable to load saved flashcards right now.');
+      } finally {
+        setIsLoading(false);
+      }
     };
-  }, []);
+
+    fetchSavedDecks();
+  }, [navigate]);
+
+  const handleViewDetails = (deckId) => {
+    setSelectedDeckId((current) => (current === deckId ? '' : deckId));
+  };
+
+  const handleRetryFetch = () => {
+    setIsLoading(true);
+    setErrorMessage('');
+
+    getMyFlashcards()
+      .then((response) => {
+        const normalizedDecks = response.map((deck, index) => normalizeSavedDeck(deck, index));
+        setSavedTopics(normalizedDecks);
+        setSelectedDeckId(normalizedDecks[0]?.id || '');
+      })
+      .catch((error) => {
+        if (isUnauthorizedError(error)) {
+          clearAuthSession();
+          navigate('/auth', {
+            replace: true,
+            state: {
+              from: '/my-deck',
+              message: 'Please log in to access your saved flashcards.',
+            },
+          });
+          return;
+        }
+
+        setErrorMessage(error?.message || 'Unable to load saved flashcards right now.');
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  };
 
   return (
     <div className="saved-flashcards-page">
       <header className="saved-flashcards-page__header animate-fade-in">
-        <h1 className="saved-flashcards-page__title">Saved Flashcards</h1>
+        <h1 className="saved-flashcards-page__title">{title}</h1>
         <p className="saved-flashcards-page__subtitle">
-          Your saved topics are organized here for quick revision.
+          {subtitle}
         </p>
       </header>
 
@@ -90,12 +163,15 @@ export default function SavedFlashcards() {
             </GlassCard>
           ))}
         </section>
-      ) : hasError ? (
+      ) : errorMessage ? (
         <GlassCard className="saved-flashcards-page__empty saved-flashcards-page__empty--error" compact>
           <p className="saved-flashcards-page__empty-title">Could not load saved flashcards</p>
           <p className="saved-flashcards-page__empty-subtitle">
-            Please refresh the page and try again.
+            {errorMessage}
           </p>
+          <Button variant="secondary" size="sm" onClick={handleRetryFetch}>
+            Retry
+          </Button>
         </GlassCard>
       ) : savedTopics.length === 0 ? (
         <GlassCard className="saved-flashcards-page__empty" compact>
@@ -116,13 +192,57 @@ export default function SavedFlashcards() {
               <p className="saved-topic-card__preview">{topic.preview}</p>
 
               <div className="saved-topic-card__actions">
-                <Button variant="secondary" size="sm" className="saved-topic-card__view-btn">
-                  View
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className={`saved-topic-card__view-btn ${selectedDeckId === topic.id ? 'saved-topic-card__view-btn--active' : ''}`}
+                  onClick={() => handleViewDetails(topic.id)}
+                >
+                  {selectedDeckId === topic.id ? 'Hide' : 'View'}
                 </Button>
               </div>
             </GlassCard>
           ))}
         </section>
+      )}
+
+      {!isLoading && !errorMessage && selectedDeck && (
+        <GlassCard className="saved-flashcards-page__details">
+          <div className="saved-flashcards-page__details-head">
+            <div>
+              <h3 className="saved-flashcards-page__details-title">{selectedDeck.topic}</h3>
+              <p className="saved-flashcards-page__details-date">Saved on {formatSavedDate(selectedDeck.savedAt)}</p>
+            </div>
+            <span className="saved-flashcards-page__details-count">
+              {selectedDeck.flashcards.length} cards
+            </span>
+          </div>
+
+          <div className="saved-flashcards-page__details-grid">
+            {selectedDeck.flashcards.map((card, index) => (
+              <article key={`${selectedDeck.id}-${card.title}-${index}`} className="saved-flashcards-page__detail-card">
+                <h4 className="saved-flashcards-page__detail-title">{card.title}</h4>
+                <p className="saved-flashcards-page__detail-text">{card.explanation}</p>
+
+                {card.points.length > 0 && (
+                  <ul className="saved-flashcards-page__detail-list">
+                    {card.points.map((point, pointIndex) => (
+                      <li key={`${card.title}-${point}-${pointIndex}`}>{point}</li>
+                    ))}
+                  </ul>
+                )}
+
+                <p className="saved-flashcards-page__detail-example">
+                  <strong>Example:</strong> {card.example}
+                </p>
+
+                <p className="saved-flashcards-page__detail-quiz">
+                  <strong>Quiz:</strong> {card.quiz}
+                </p>
+              </article>
+            ))}
+          </div>
+        </GlassCard>
       )}
     </div>
   );

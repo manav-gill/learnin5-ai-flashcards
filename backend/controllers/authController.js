@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import { JWT_SECRET } from "../config/env.js";
 
 const SALT_ROUNDS = 10;
 
@@ -84,13 +85,13 @@ export const loginUser = async (req, res, next) => {
       });
     }
 
-    if (!process.env.JWT_SECRET) {
+    if (!JWT_SECRET) {
       throw new Error("Missing JWT_SECRET in environment variables");
     }
 
     const token = jwt.sign(
       { userId: user._id },
-      process.env.JWT_SECRET,
+      JWT_SECRET,
       { expiresIn: "7d" }
     );
 
@@ -98,6 +99,11 @@ export const loginUser = async (req, res, next) => {
       success: true,
       message: "Login successful",
       token,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+      },
     });
   } catch (error) {
     return next(error);

@@ -1,4 +1,4 @@
-const REQUIRED_COUNT = 5;
+export const REQUIRED_COUNT = 5;
 
 const toSafeString = (value, fallback) => {
   if (typeof value !== "string") {
@@ -14,23 +14,38 @@ const limitWords = (text, maxWords) => {
   return words.slice(0, maxWords).join(" ");
 };
 
-const buildFallbackFlashcard = (index) => {
+export const buildFallbackFlashcard = (index) => {
   const number = index + 1;
+
+  const fallbackPoints = [
+    "Try generating again for a richer explanation.",
+    "Review the topic basics before moving ahead.",
+  ];
 
   return {
     title: `Flashcard ${number}`,
     explanation: "This flashcard summary is temporarily unavailable.",
-    points: [
-      "Try generating again for a richer explanation.",
-      "Review the topic basics before moving ahead.",
-    ],
+    points: fallbackPoints,
+    keyPoints: fallbackPoints,
     example: "Example is unavailable right now.",
     quiz: "What key idea should you review first?",
   };
 };
 
-const normalizePoints = (points) => {
-  const sourcePoints = Array.isArray(points) ? points : [];
+export const buildFallbackFlashcards = () => Array.from(
+  { length: REQUIRED_COUNT },
+  (_, index) => buildFallbackFlashcard(index)
+);
+
+const normalizePoints = (item) => {
+  const sourcePoints = Array.isArray(item?.points)
+    ? item.points
+    : Array.isArray(item?.keyPoints)
+      ? item.keyPoints
+      : Array.isArray(item?.["key points"])
+        ? item["key points"]
+        : [];
+
   const normalized = sourcePoints
     .filter((item) => typeof item === "string")
     .map((item) => item.trim())
@@ -46,6 +61,7 @@ const normalizePoints = (points) => {
 
 const normalizeFlashcard = (item, index) => {
   const fallback = buildFallbackFlashcard(index);
+  const normalizedPoints = normalizePoints(item);
 
   return {
     title: toSafeString(item?.title, fallback.title),
@@ -53,7 +69,8 @@ const normalizeFlashcard = (item, index) => {
       toSafeString(item?.explanation, fallback.explanation),
       40
     ),
-    points: normalizePoints(item?.points),
+    points: normalizedPoints,
+    keyPoints: normalizedPoints,
     example: toSafeString(item?.example, fallback.example),
     quiz: toSafeString(item?.quiz, fallback.quiz),
   };
@@ -105,9 +122,7 @@ export const parseFlashcards = (rawText) => {
   }
 
   if (!parsedArray) {
-    return Array.from({ length: REQUIRED_COUNT }, (_, index) =>
-      buildFallbackFlashcard(index)
-    );
+    return buildFallbackFlashcards();
   }
 
   const normalized = parsedArray

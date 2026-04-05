@@ -1,6 +1,12 @@
+import { useMemo } from 'react';
+import { getAuthUser } from '../services/api';
 import './Navbar.css';
 
 export default function Navbar({ title = 'Dashboard' }) {
+  const authUser = useMemo(() => getAuthUser(), []);
+  const userName = authUser?.name || 'Learner';
+  const userInitial = userName.trim().charAt(0).toUpperCase() || 'L';
+
   return (
     <header className="navbar">
       {/* Left — Page title / breadcrumb area */}
@@ -41,9 +47,9 @@ export default function Navbar({ title = 'Dashboard' }) {
 
         {/* Profile */}
         <button className="navbar__profile" aria-label="Profile menu" title="Profile">
-          <div className="navbar__avatar">M</div>
+          <div className="navbar__avatar">{userInitial}</div>
           <div className="navbar__user-info">
-            <span className="navbar__user-name">Madhav</span>
+            <span className="navbar__user-name">{userName}</span>
             <span className="navbar__user-role">Pro Plan</span>
           </div>
           <svg className="navbar__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -1,0 +1,139 @@
+/* ============================================================
+   Auth Page
+   ============================================================ */
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl) var(--space-md);
+}
+
+.auth-card {
+  width: min(100%, 500px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.auth-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.auth-card__badge {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: #6d28d9;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.auth-card__title {
+  font-size: clamp(1.7rem, 1.35rem + 1vw, 2.2rem);
+  font-family: var(--font-family-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+
+.auth-card__subtitle {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.auth-card__switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.52);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: var(--radius-full);
+  padding: 4px;
+}
+
+.auth-card__switch-btn {
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 8px 14px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+
+.auth-card__switch-btn:hover {
+  transform: translateY(-1px);
+}
+
+.auth-card__switch-btn--active {
+  color: #4c1d95;
+  background: rgba(139, 92, 246, 0.14);
+}
+
+.auth-card__message {
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  padding: 10px 12px;
+}
+
+.auth-card__message--info {
+  color: #1e3a8a;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.32);
+}
+
+.auth-card__message--error {
+  color: #991b1b;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.32);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.auth-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.auth-form__field label {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.auth-form__field input {
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--text-primary);
+  padding: 11px 12px;
+  font-size: var(--fs-sm);
+  font-family: var(--font-family);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+
+.auth-form__field input:focus {
+  outline: none;
+  border-color: rgba(139, 92, 246, 0.42);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
+}
+
+.auth-form__field input::placeholder {
+  color: var(--text-muted);
+}

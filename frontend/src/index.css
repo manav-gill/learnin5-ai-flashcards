@@ -341,6 +341,15 @@ a:hover {
   animation: skeletonShimmer 1200ms ease-in-out infinite;
 }
 
+.loading-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+  border: 2px solid rgba(15, 23, 42, 0.25);
+  border-top-color: currentColor;
+  animation: spin 700ms linear infinite;
+}
+
 /* ── Animations ─────────────────────────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
@@ -360,6 +369,12 @@ a:hover {
 @keyframes skeletonShimmer {
   to {
     transform: translateX(100%);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 

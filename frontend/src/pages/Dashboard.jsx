@@ -1,7 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import GlassCard from '../components/GlassCard';
 import Button from '../components/Button';
 import StatCard from '../components/StatCard';
+import {
+  clearAuthSession,
+  generateFlashcards,
+  isUnauthorizedError,
+  saveFlashcards,
+} from '../services/api';
 import './Dashboard.css';
 
 const STATS = [
@@ -67,144 +74,59 @@ const ACTIVITIES = [
   },
 ];
 
-const GENERATED_FLASHCARDS = [
-  {
-    title: 'JavaScript Closures',
-    explanation:
-      'A closure allows an inner function to access variables from its outer scope even after the outer function has finished executing.',
-    points: [
-      'Closures preserve lexical scope.',
-      'They are useful for private state.',
-      'Each function instance can keep its own memory.',
-    ],
-    example: 'A counter function that remembers count between calls.',
-    quiz: 'Why does a closure still know outer variables after the parent function returns?',
-  },
-  {
-    title: 'React useEffect Basics',
-    explanation:
-      'useEffect lets you run side effects like API calls or subscriptions after a component renders.',
-    points: [
-      'Runs after render by default.',
-      'Dependency array controls when it re-runs.',
-      'Return a cleanup function for timers and listeners.',
-    ],
-    example: 'Fetching user data when the component mounts with an empty dependency array.',
-    quiz: 'What problem can happen if you forget to clean up an event listener in useEffect?',
-  },
-  {
-    title: 'CSS Grid Layout',
-    explanation:
-      'CSS Grid is a two-dimensional layout system that helps place content into rows and columns with precise control.',
-    points: [
-      'Define tracks using grid-template-columns and rows.',
-      'Use gap for clean spacing between items.',
-      'Items can span multiple rows or columns.',
-    ],
-    example: 'A dashboard layout using grid-template-columns: 2fr 1fr for content and sidebar.',
-    quiz: 'When would you prefer Grid over Flexbox for page layout?',
-  },
-  {
-    title: 'HTTP Status Families',
-    explanation:
-      'HTTP status codes communicate how a request was handled, grouped into families like success, client error, and server error.',
-    points: [
-      '2xx indicates successful responses.',
-      '4xx indicates request-side issues.',
-      '5xx indicates server-side failures.',
-    ],
-    example: 'A login route returning 401 when credentials are invalid.',
-    quiz: 'What is the difference between 401 Unauthorized and 403 Forbidden?',
-  },
-  {
-    title: 'MongoDB Index Purpose',
-    explanation:
-      'Indexes improve query speed by organizing field values, reducing how many documents MongoDB needs to scan.',
-    points: [
-      'Indexes accelerate frequently filtered fields.',
-      'Each extra index increases write overhead.',
-      'Compound index order matters for query patterns.',
-    ],
-    example: 'Creating an index on email to speed up user lookup during login.',
-    quiz: 'Why can too many indexes hurt insert and update performance?',
-  },
-];
-
-const SAVED_FLASHCARDS_STORAGE_KEY = 'learnin5_saved_flashcards';
 const FLASHCARD_SKELETON_COUNT = 5;
-const FLASHCARD_GENERATION_DELAY_MS = 850;
 
-const readStoredSavedTopics = () => {
-  if (typeof window === 'undefined') {
-    return [];
+const buildFallbackFlashcard = (index) => ({
+  title: `Flashcard ${index + 1}`,
+  explanation: 'This flashcard summary is temporarily unavailable.',
+  points: ['Review the topic fundamentals.', 'Try generating the topic again.'],
+  example: 'Example is unavailable right now.',
+  quiz: 'What key idea should you review first?',
+});
+
+const normalizeFlashcards = (flashcards) => {
+  const source = Array.isArray(flashcards) ? flashcards : [];
+
+  const normalized = source
+    .slice(0, FLASHCARD_SKELETON_COUNT)
+    .map((item, index) => ({
+      title: typeof item?.title === 'string' && item.title.trim() ? item.title.trim() : buildFallbackFlashcard(index).title,
+      explanation:
+        typeof item?.explanation === 'string' && item.explanation.trim()
+          ? item.explanation.trim()
+          : buildFallbackFlashcard(index).explanation,
+      points: Array.isArray(item?.points)
+        ? item.points.filter((point) => typeof point === 'string' && point.trim()).slice(0, 3)
+        : buildFallbackFlashcard(index).points,
+      example:
+        typeof item?.example === 'string' && item.example.trim()
+          ? item.example.trim()
+          : buildFallbackFlashcard(index).example,
+      quiz:
+        typeof item?.quiz === 'string' && item.quiz.trim()
+          ? item.quiz.trim()
+          : buildFallbackFlashcard(index).quiz,
+    }));
+
+  while (normalized.length < FLASHCARD_SKELETON_COUNT) {
+    normalized.push(buildFallbackFlashcard(normalized.length));
   }
 
-  try {
-    const rawValue = window.localStorage.getItem(SAVED_FLASHCARDS_STORAGE_KEY);
-
-    if (!rawValue) {
-      return [];
-    }
-
-    const parsedValue = JSON.parse(rawValue);
-    return Array.isArray(parsedValue) ? parsedValue : [];
-  } catch {
-    return [];
-  }
-};
-
-const persistSavedTopic = (flashcards) => {
-  if (!Array.isArray(flashcards) || flashcards.length === 0 || typeof window === 'undefined') {
-    return { ok: false };
-  }
-
-  const firstCard = flashcards[0];
-  const topicName = typeof firstCard?.title === 'string' && firstCard.title.trim()
-    ? firstCard.title.trim()
-    : 'Generated topic';
-  const previewText = typeof firstCard?.explanation === 'string' && firstCard.explanation.trim()
-    ? firstCard.explanation.trim()
-    : 'Review this saved flashcard set any time.';
-
-  const savedTopic = {
-    id: `saved-${Date.now()}`,
-    topic: topicName,
-    preview: previewText,
-    savedAt: new Date().toISOString(),
-  };
-
-  const existingTopics = readStoredSavedTopics().filter((item) => item && typeof item === 'object');
-  const nextTopics = [savedTopic, ...existingTopics].slice(0, 24);
-
-  try {
-    window.localStorage.setItem(SAVED_FLASHCARDS_STORAGE_KEY, JSON.stringify(nextTopics));
-    return { ok: true };
-  } catch {
-    return { ok: false };
-  }
+  return normalized;
 };
 
 export default function Dashboard() {
-  const hasGeneratedFlashcards = GENERATED_FLASHCARDS.length === 5;
-  const [isGenerating, setIsGenerating] = useState(true);
+  const navigate = useNavigate();
+  const topicInputRef = useRef(null);
+
+  const [topicInput, setTopicInput] = useState('');
+  const [generatedTopic, setGeneratedTopic] = useState('');
+  const [generatedFlashcards, setGeneratedFlashcards] = useState([]);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState('');
   const [saveState, setSaveState] = useState('idle');
 
-  useEffect(() => {
-    const generationTimer = window.setTimeout(() => {
-      if (hasGeneratedFlashcards) {
-        setGenerationError('');
-      } else {
-        setGenerationError('We could not load your generated flashcards. Please try again.');
-      }
-
-      setIsGenerating(false);
-    }, FLASHCARD_GENERATION_DELAY_MS);
-
-    return () => {
-      window.clearTimeout(generationTimer);
-    };
-  }, [hasGeneratedFlashcards]);
+  const hasGeneratedFlashcards = generatedFlashcards.length === FLASHCARD_SKELETON_COUNT;
 
   useEffect(() => {
     if (saveState !== 'success' && saveState !== 'error') {
@@ -227,25 +149,84 @@ export default function Dashboard() {
 
     setSaveState('saving');
 
-    window.setTimeout(() => {
-      const saveResult = persistSavedTopic(GENERATED_FLASHCARDS);
-      setSaveState(saveResult.ok ? 'success' : 'error');
-    }, 550);
+    saveFlashcards({
+      topic: generatedTopic || topicInput.trim() || 'Generated Topic',
+      flashcards: generatedFlashcards,
+    })
+      .then(() => {
+        setSaveState('success');
+      })
+      .catch((error) => {
+        if (isUnauthorizedError(error)) {
+          clearAuthSession();
+          navigate('/auth', {
+            replace: true,
+            state: {
+              from: '/generate',
+              message: 'Your session expired. Please log in again.',
+            },
+          });
+          return;
+        }
+
+        setSaveState('error');
+      });
+  };
+
+  const handleGenerateFlashcards = async () => {
+    const cleanTopic = topicInput.trim();
+
+    if (cleanTopic.length < 3) {
+      setGenerationError('Please enter a topic with at least 3 characters.');
+      setGeneratedFlashcards([]);
+      return;
+    }
+
+    setSaveState('idle');
+    setGenerationError('');
+    setIsGenerating(true);
+    setGeneratedFlashcards([]);
+
+    try {
+      const apiFlashcards = await generateFlashcards(cleanTopic);
+      const normalized = normalizeFlashcards(apiFlashcards);
+
+      if (!normalized.length) {
+        throw new Error('No flashcards were generated. Please try another topic.');
+      }
+
+      setGeneratedTopic(cleanTopic);
+      setGeneratedFlashcards(normalized);
+    } catch (error) {
+      if (isUnauthorizedError(error)) {
+        clearAuthSession();
+        navigate('/auth', {
+          replace: true,
+          state: {
+            from: '/generate',
+            message: 'Please log in to continue generating flashcards.',
+          },
+        });
+        return;
+      }
+
+      setGenerationError(error?.message || 'Unable to generate flashcards right now.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleRetryGeneration = () => {
-    setGenerationError('');
-    setIsGenerating(true);
+    handleGenerateFlashcards();
+  };
 
-    window.setTimeout(() => {
-      if (hasGeneratedFlashcards) {
-        setGenerationError('');
-      } else {
-        setGenerationError('We could not load your generated flashcards. Please try again.');
-      }
+  const handleFocusGenerator = () => {
+    topicInputRef.current?.focus();
+  };
 
-      setIsGenerating(false);
-    }, FLASHCARD_GENERATION_DELAY_MS);
+  const handleGeneratorSubmit = (event) => {
+    event.preventDefault();
+    handleGenerateFlashcards();
   };
 
   return (
@@ -256,9 +237,57 @@ export default function Dashboard() {
           Welcome back, <span>Madhav</span> 👋
         </h1>
         <p className="dashboard__subtitle">
-          You've mastered 36% of your flashcards. Keep up the great work!
+          Generate, save, and revise exactly 5 flashcards for any topic in seconds.
         </p>
       </div>
+
+      {/* Generator */}
+      <section className="dashboard__generator">
+        <GlassCard className="dashboard__generator-card">
+          <div className="dashboard__generator-head">
+            <h3 className="dashboard__section-title">Generate New Flashcards</h3>
+            <p className="dashboard__generator-subtitle">
+              Enter any topic to generate 5 AI flashcards with key points, example, and quiz.
+            </p>
+          </div>
+
+          <form className="dashboard__generator-form" onSubmit={handleGeneratorSubmit}>
+            <label className="dashboard__generator-label" htmlFor="topic-input">
+              Topic
+            </label>
+
+            <div className="dashboard__generator-row">
+              <input
+                id="topic-input"
+                ref={topicInputRef}
+                type="text"
+                value={topicInput}
+                onChange={(event) => setTopicInput(event.target.value)}
+                placeholder="Try: JavaScript closures, Photosynthesis, HTTP status codes..."
+                className="dashboard__topic-input"
+                disabled={isGenerating}
+              />
+
+              <Button type="submit" variant="primary" disabled={isGenerating}>
+                {isGenerating && <span className="loading-spinner" aria-hidden="true" />}
+                {isGenerating ? 'Generating...' : 'Generate'}
+              </Button>
+            </div>
+          </form>
+
+          {generationError && !hasGeneratedFlashcards && (
+            <p className="dashboard__generator-error" role="status" aria-live="polite">
+              {generationError}
+            </p>
+          )}
+
+          {!generationError && hasGeneratedFlashcards && (
+            <p className="dashboard__generator-success" role="status" aria-live="polite">
+              Generated 5 flashcards for "{generatedTopic}".
+            </p>
+          )}
+        </GlassCard>
+      </section>
 
       {/* Stats */}
       <div className="dashboard__stats stagger-children">
@@ -292,7 +321,7 @@ export default function Dashboard() {
           <h3 className="dashboard__section-title">Quick Actions</h3>
           <GlassCard>
             <div className="quick-actions">
-              <Button variant="primary" fullWidth>
+              <Button variant="primary" fullWidth onClick={handleFocusGenerator}>
                 ✨ Generate Flashcards
               </Button>
               <Button variant="green" fullWidth>
@@ -315,7 +344,9 @@ export default function Dashboard() {
           <h3 className="dashboard__section-title">Generated Flashcards</h3>
 
           <div className="generated-flashcards__actions">
-            <span className="generated-flashcards__meta">Exactly {GENERATED_FLASHCARDS.length} cards</span>
+            <span className="generated-flashcards__meta">
+              {hasGeneratedFlashcards ? `Exactly ${generatedFlashcards.length} cards` : 'No cards yet'}
+            </span>
 
             {hasGeneratedFlashcards && (
               <Button
@@ -323,8 +354,9 @@ export default function Dashboard() {
                 size="sm"
                 className={`generated-flashcards__save-btn ${saveState === 'success' ? 'generated-flashcards__save-btn--saved' : ''}`}
                 onClick={handleSaveFlashcards}
-                disabled={saveState === 'saving' || isGenerating || Boolean(generationError)}
+                disabled={saveState === 'saving' || isGenerating}
               >
+                {saveState === 'saving' && <span className="loading-spinner" aria-hidden="true" />}
                 {saveState === 'saving' ? 'Saving...' : saveState === 'success' ? 'Saved' : saveState === 'error' ? 'Try Again' : 'Save Flashcards'}
               </Button>
             )}
@@ -361,7 +393,7 @@ export default function Dashboard() {
               </GlassCard>
             ))}
           </div>
-        ) : generationError ? (
+        ) : generationError && !hasGeneratedFlashcards ? (
           <GlassCard className="generated-flashcards__state generated-flashcards__state--error" compact>
             <h4 className="generated-flashcards__state-title">Unable to load generated flashcards</h4>
             <p className="generated-flashcards__state-text">{generationError}</p>
@@ -369,11 +401,20 @@ export default function Dashboard() {
               Retry
             </Button>
           </GlassCard>
+        ) : !hasGeneratedFlashcards ? (
+          <GlassCard className="generated-flashcards__state" compact>
+            <h4 className="generated-flashcards__state-title generated-flashcards__state-title--neutral">
+              No flashcards generated yet
+            </h4>
+            <p className="generated-flashcards__state-text">
+              Enter a topic above and click Generate to create your flashcards.
+            </p>
+          </GlassCard>
         ) : (
           <div className="generated-flashcards__grid">
-            {GENERATED_FLASHCARDS.map((card, index) => (
+            {generatedFlashcards.map((card, index) => (
               <GlassCard
-                key={card.title}
+                key={`${card.title}-${index}`}
                 className="generated-flashcard"
                 hoverable
                 style={{ '--flashcard-delay': `${index * 90}ms` }}
@@ -388,8 +429,8 @@ export default function Dashboard() {
                 <div className="generated-flashcard__section">
                   <p className="generated-flashcard__label">Key points</p>
                   <ul className="generated-flashcard__list">
-                    {card.points.map((point) => (
-                      <li key={`${card.title}-${point}`}>{point}</li>
+                    {card.points.map((point, pointIndex) => (
+                      <li key={`${card.title}-${point}-${pointIndex}`}>{point}</li>
                     ))}
                   </ul>
                 </div>

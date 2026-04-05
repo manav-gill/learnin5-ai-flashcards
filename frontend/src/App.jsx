@@ -1,70 +1,39 @@
-import React from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import './App.css';
-import Sidebar from './components/Sidebar';
-import Navbar from './components/Navbar';
+import ProtectedRoute from './components/ProtectedRoute';
+import AppLayout from './layouts/AppLayout';
 import Dashboard from './pages/Dashboard';
 import LandingPage from './pages/LandingPage';
-import SavedFlashcards from './pages/SavedFlashcards';
-
-const NAV_ROUTES = {
-  dashboard: '/dashboard',
-  saved: '/saved',
-};
-
-const NAV_TITLES = {
-  dashboard: 'Dashboard',
-  saved: 'Saved Flashcards',
-};
-
-// Main Application Layout (Sidebar + Content)
-function AppLayout({ activeItem = 'dashboard', children }) {
-  const navigate = useNavigate();
-  const pageTitle = NAV_TITLES[activeItem] || 'Learn in 5';
-
-  const handleSidebarNavigate = (itemId) => {
-    const route = NAV_ROUTES[itemId];
-
-    if (route) {
-      navigate(route);
-    }
-  };
-
-  return (
-    <div className="app-layout">
-      <Sidebar activeItem={activeItem} onNavigate={handleSidebarNavigate} />
-      <div className="app-body">
-        <Navbar title={pageTitle} />
-        <main className="app-main">
-          {children}
-        </main>
-      </div>
-    </div>
-  );
-}
+import MyDeck from './pages/MyDeck';
+import Profile from './pages/Profile';
+import AuthPage from './pages/AuthPage';
+import { isAuthenticated } from './services/api';
 
 export default function App() {
   const navigate = useNavigate();
 
+  const handleGetStarted = () => {
+    navigate(isAuthenticated() ? '/generate' : '/auth');
+  };
+
   return (
     <Routes>
-      <Route path="/" element={<LandingPage onGetStarted={() => navigate('/dashboard')} />} />
-      <Route
-        path="/dashboard"
-        element={(
-          <AppLayout activeItem="dashboard">
-            <Dashboard />
-          </AppLayout>
-        )}
-      />
-      <Route
-        path="/saved"
-        element={(
-          <AppLayout activeItem="saved">
-            <SavedFlashcards />
-          </AppLayout>
-        )}
-      />
+      <Route path="/" element={<LandingPage onGetStarted={handleGetStarted} />} />
+      <Route path="/auth" element={<AuthPage />} />
+
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AppLayout />}>
+          <Route path="/generate" element={<Dashboard />} />
+          <Route path="/my-deck" element={<MyDeck />} />
+          <Route path="/profile" element={<Profile />} />
+
+          {/* Backward-compatible aliases */}
+          <Route path="/dashboard" element={<Navigate to="/generate" replace />} />
+          <Route path="/saved" element={<Navigate to="/my-deck" replace />} />
+        </Route>
+      </Route>
+
+      <Route path="*" element={<Navigate to={isAuthenticated() ? '/generate' : '/auth'} replace />} />
     </Routes>
   );
 }

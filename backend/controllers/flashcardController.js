@@ -1,5 +1,5 @@
 import { getFlashcardTestMessage } from "../services/flashcardService.js";
-import { getFlashcardsFromAI } from "../services/aiService.js";
+import { generateFlashcardsForTopic } from "../services/flashcardService.js";
 import SavedFlashcard from "../models/SavedFlashcard.js";
 
 export const getFlashcardTest = (req, res) => {
@@ -7,24 +7,16 @@ export const getFlashcardTest = (req, res) => {
 };
 
 const validateTopic = (topic) => {
-  if (typeof topic !== "string") {
-    return { isValid: false, message: "Topic must be a string" };
-  }
-
-  const cleanTopic = topic.trim();
-
-  if (!cleanTopic) {
+  if (typeof topic !== "string" || !topic.trim()) {
     return { isValid: false, message: "Topic is required" };
   }
 
-  if (cleanTopic.length < 3) {
-    return { isValid: false, message: "Topic must be at least 3 characters" };
-  }
-
-  return { isValid: true, cleanTopic };
+  return { isValid: true, cleanTopic: topic.trim() };
 };
 
 export const generateFlashcard = async (req, res) => {
+  console.log("Incoming generate flashcards request body", req.body || {});
+
   try {
     const { topic } = req.body || {};
     const validation = validateTopic(topic);
@@ -36,19 +28,22 @@ export const generateFlashcard = async (req, res) => {
       });
     }
 
-    const flashcards = await getFlashcardsFromAI(validation.cleanTopic);
+    const flashcards = await generateFlashcardsForTopic(validation.cleanTopic);
 
     return res.status(200).json({
       success: true,
-      count: flashcards.length,
-      data: flashcards,
+      flashcards,
     });
   } catch (error) {
-    console.error("Error in generateFlashcard:", error);
+    console.error("Error in generateFlashcard", {
+      message: error?.message || "Unknown error",
+      stack: error?.stack,
+      topic: req.body?.topic,
+    });
 
     return res.status(500).json({
       success: false,
-      message: "Something went wrong while generating flashcard",
+      message: "Failed to generate flashcards",
     });
   }
 };
