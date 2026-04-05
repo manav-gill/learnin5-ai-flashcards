@@ -19,18 +19,19 @@ const getOpenAIClient = () => {
 };
 
 const buildPrompt = (topic) => (
-  `Generate exactly 5 flashcards about: ${topic}.\n` +
-  `Return ONLY valid JSON. Do not include explanations or text outside JSON.\n` +
-  `Use this format:\n` +
+  `Generate exactly 5 flashcards for the topic: ${topic}\n\n` +
+  `Return ONLY a JSON array in this exact format:\n\n` +
   `[\n` +
   `  {\n` +
-  `    "title": "...",\n` +
-  `    "explanation": "...",\n` +
-  `    "keyPoints": ["...", "..."],\n` +
-  `    "example": "...",\n` +
-  `    "quiz": "..."\n` +
+  `    "title": "string",\n` +
+  `    "explanation": "string",\n` +
+  `    "keyPoints": ["string", "string", "string"],\n` +
+  `    "example": "string",\n` +
+  `    "quiz": "string"\n` +
   `  }\n` +
-  `]`
+  `]\n\n` +
+  `Do NOT include markdown, headings, or extra text.\n` +
+  `Do NOT wrap in code blocks.`
 );
 
 export const fetchRawFlashcardResponse = async (topic) => {

@@ -38,14 +38,14 @@ export const generateFlashcard = async (req, res) => {
   } catch (error) {
     console.error("Error in generateFlashcard", {
       message: error?.message || "Unknown error",
-      stack: error?.stack,
       topic: req.body?.topic,
+      responseData: error?.response?.data || null,
       error,
     });
 
-    return res.status(200).json({
-      success: true,
-      flashcards: buildFallbackFlashcards(),
+    return res.status(500).json({
+      success: false,
+      message: error?.response?.data?.error?.message || error?.message || "Failed to connect to OpenAI. Please try again.",
     });
   }
 };
