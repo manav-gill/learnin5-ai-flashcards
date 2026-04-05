@@ -26,6 +26,17 @@
   transform: scale(0.97);
 }
 
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.75;
+  transform: none;
+}
+
+.btn:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 /* ── Primary ──────────────────────────────────────────────── */
 .btn--primary {
   background: linear-gradient(135deg, var(--accent-purple), #818CF8);
