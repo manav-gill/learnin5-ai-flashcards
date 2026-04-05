@@ -27,7 +27,8 @@ async function startServer() {
 
   const app = express();
 
-  const corsOrigin = process.env.CORS_ORIGIN || "*";
+  const envCors = process.env.CORS_ORIGIN || "*";
+  const corsOrigin = envCors.includes(",") ? envCors.split(",").map(o => o.trim()) : envCors;
   const rateLimitWindowMs = 15 * 60 * 1000;
   const rateLimitMaxRequests = Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100;
 
