@@ -37,6 +37,17 @@
   line-height: 1.75;
 }
 
+.dashboard__data-state {
+  margin-top: var(--space-sm);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.dashboard__data-state--error {
+  color: #991b1b;
+}
+
 /* ── Generator Panel ────────────────────────────────────────── */
 .dashboard__generator-card {
   display: flex;
@@ -153,6 +164,14 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
+}
+
+.activity-list__empty {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  line-height: 1.65;
 }
 
 .activity-item {

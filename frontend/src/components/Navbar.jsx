@@ -1,10 +1,26 @@
-import { useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { getAuthUser } from '../services/api';
 import './Navbar.css';
 
 export default function Navbar({ title = 'Dashboard' }) {
-  const authUser = useMemo(() => getAuthUser(), []);
+  const [authUser, setAuthUser] = useState(() => getAuthUser());
+
+  useEffect(() => {
+    const refreshUser = () => {
+      setAuthUser(getAuthUser());
+    };
+
+    window.addEventListener('auth-session-changed', refreshUser);
+    window.addEventListener('storage', refreshUser);
+
+    return () => {
+      window.removeEventListener('auth-session-changed', refreshUser);
+      window.removeEventListener('storage', refreshUser);
+    };
+  }, []);
+
   const userName = authUser?.name || 'Learner';
+  const userEmail = authUser?.email || 'member@learnin5.app';
   const userInitial = userName.trim().charAt(0).toUpperCase() || 'L';
 
   return (
@@ -12,23 +28,6 @@ export default function Navbar({ title = 'Dashboard' }) {
       {/* Left — Page title / breadcrumb area */}
       <div className="navbar__left">
         <h2 className="navbar__title">{title}</h2>
-      </div>
-
-      {/* Center — Search */}
-      <div className="navbar__center">
-        <div className="navbar__search">
-          <svg className="navbar__search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8" />
-            <path d="M21 21l-4.35-4.35" />
-          </svg>
-          <input
-            type="text"
-            className="navbar__search-input"
-            placeholder="Search flashcards, decks..."
-            aria-label="Search"
-          />
-          <kbd className="navbar__search-shortcut">⌘K</kbd>
-        </div>
       </div>
 
       {/* Right — Actions */}
@@ -50,7 +49,7 @@ export default function Navbar({ title = 'Dashboard' }) {
           <div className="navbar__avatar">{userInitial}</div>
           <div className="navbar__user-info">
             <span className="navbar__user-name">{userName}</span>
-            <span className="navbar__user-role">Pro Plan</span>
+            <span className="navbar__user-role">{userEmail}</span>
           </div>
           <svg className="navbar__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="6 9 12 15 18 9" />

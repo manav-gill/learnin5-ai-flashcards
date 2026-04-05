@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GlassCard from '../components/GlassCard';
 import Button from '../components/Button';
+import FlashcardViewer from '../components/FlashcardViewer';
 import {
   clearAuthSession,
   getMyFlashcards,
@@ -37,27 +38,39 @@ const normalizeSavedDeck = (deck, index) => {
         ? firstCard.explanation.trim()
         : 'No preview available yet.',
     savedAt: typeof deck?.createdAt === 'string' ? deck.createdAt : '',
-    flashcards: flashcards.map((card, cardIndex) => ({
-      title:
-        typeof card?.title === 'string' && card.title.trim()
-          ? card.title.trim()
-          : `Flashcard ${cardIndex + 1}`,
-      explanation:
-        typeof card?.explanation === 'string' && card.explanation.trim()
-          ? card.explanation.trim()
-          : 'Explanation is unavailable.',
-      points: Array.isArray(card?.points)
-        ? card.points.filter((point) => typeof point === 'string' && point.trim()).slice(0, 3)
-        : [],
-      example:
-        typeof card?.example === 'string' && card.example.trim()
-          ? card.example.trim()
-          : 'Example unavailable.',
-      quiz:
-        typeof card?.quiz === 'string' && card.quiz.trim()
-          ? card.quiz.trim()
-          : 'Quiz unavailable.',
-    })),
+    flashcards: flashcards.map((card, cardIndex) => {
+      const sourcePoints = Array.isArray(card?.keyPoints)
+        ? card.keyPoints
+        : Array.isArray(card?.points)
+          ? card.points
+          : [];
+
+      const normalizedPoints = sourcePoints
+        .filter((point) => typeof point === 'string' && point.trim())
+        .map((point) => point.trim())
+        .slice(0, 4);
+
+      return {
+        title:
+          typeof card?.title === 'string' && card.title.trim()
+            ? card.title.trim()
+            : `Flashcard ${cardIndex + 1}`,
+        explanation:
+          typeof card?.explanation === 'string' && card.explanation.trim()
+            ? card.explanation.trim()
+            : 'Explanation is unavailable.',
+        keyPoints: normalizedPoints,
+        points: normalizedPoints,
+        example:
+          typeof card?.example === 'string' && card.example.trim()
+            ? card.example.trim()
+            : 'Example unavailable.',
+        quiz:
+          typeof card?.quiz === 'string' && card.quiz.trim()
+            ? card.quiz.trim()
+            : 'Quiz unavailable.',
+      };
+    }),
   };
 };
 
@@ -70,6 +83,8 @@ export default function SavedFlashcards({
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [selectedDeckId, setSelectedDeckId] = useState('');
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [viewerSessionKey, setViewerSessionKey] = useState(0);
 
   const selectedDeck = useMemo(
     () => savedTopics.find((deck) => deck.id === selectedDeckId) || null,
@@ -85,7 +100,8 @@ export default function SavedFlashcards({
         const response = await getMyFlashcards();
         const normalizedDecks = response.map((deck, index) => normalizeSavedDeck(deck, index));
         setSavedTopics(normalizedDecks);
-        setSelectedDeckId(normalizedDecks[0]?.id || '');
+        setSelectedDeckId('');
+        setIsViewerOpen(false);
       } catch (error) {
         if (isUnauthorizedError(error)) {
           clearAuthSession();
@@ -109,7 +125,13 @@ export default function SavedFlashcards({
   }, [navigate]);
 
   const handleViewDetails = (deckId) => {
-    setSelectedDeckId((current) => (current === deckId ? '' : deckId));
+    setSelectedDeckId(deckId);
+    setViewerSessionKey((current) => current + 1);
+    setIsViewerOpen(true);
+  };
+
+  const handleCloseViewer = () => {
+    setIsViewerOpen(false);
   };
 
   const handleRetryFetch = () => {
@@ -120,7 +142,8 @@ export default function SavedFlashcards({
       .then((response) => {
         const normalizedDecks = response.map((deck, index) => normalizeSavedDeck(deck, index));
         setSavedTopics(normalizedDecks);
-        setSelectedDeckId(normalizedDecks[0]?.id || '');
+        setSelectedDeckId('');
+        setIsViewerOpen(false);
       })
       .catch((error) => {
         if (isUnauthorizedError(error)) {
@@ -195,10 +218,10 @@ export default function SavedFlashcards({
                 <Button
                   variant="secondary"
                   size="sm"
-                  className={`saved-topic-card__view-btn ${selectedDeckId === topic.id ? 'saved-topic-card__view-btn--active' : ''}`}
+                  className={`saved-topic-card__view-btn ${selectedDeckId === topic.id && isViewerOpen ? 'saved-topic-card__view-btn--active' : ''}`}
                   onClick={() => handleViewDetails(topic.id)}
                 >
-                  {selectedDeckId === topic.id ? 'Hide' : 'View'}
+                  View
                 </Button>
               </div>
             </GlassCard>
@@ -206,44 +229,12 @@ export default function SavedFlashcards({
         </section>
       )}
 
-      {!isLoading && !errorMessage && selectedDeck && (
-        <GlassCard className="saved-flashcards-page__details">
-          <div className="saved-flashcards-page__details-head">
-            <div>
-              <h3 className="saved-flashcards-page__details-title">{selectedDeck.topic}</h3>
-              <p className="saved-flashcards-page__details-date">Saved on {formatSavedDate(selectedDeck.savedAt)}</p>
-            </div>
-            <span className="saved-flashcards-page__details-count">
-              {selectedDeck.flashcards.length} cards
-            </span>
-          </div>
-
-          <div className="saved-flashcards-page__details-grid">
-            {selectedDeck.flashcards.map((card, index) => (
-              <article key={`${selectedDeck.id}-${card.title}-${index}`} className="saved-flashcards-page__detail-card">
-                <h4 className="saved-flashcards-page__detail-title">{card.title}</h4>
-                <p className="saved-flashcards-page__detail-text">{card.explanation}</p>
-
-                {card.points.length > 0 && (
-                  <ul className="saved-flashcards-page__detail-list">
-                    {card.points.map((point, pointIndex) => (
-                      <li key={`${card.title}-${point}-${pointIndex}`}>{point}</li>
-                    ))}
-                  </ul>
-                )}
-
-                <p className="saved-flashcards-page__detail-example">
-                  <strong>Example:</strong> {card.example}
-                </p>
-
-                <p className="saved-flashcards-page__detail-quiz">
-                  <strong>Quiz:</strong> {card.quiz}
-                </p>
-              </article>
-            ))}
-          </div>
-        </GlassCard>
-      )}
+      <FlashcardViewer
+        key={`flashcard-viewer-${viewerSessionKey}-${selectedDeckId || 'none'}`}
+        isOpen={isViewerOpen}
+        deck={selectedDeck}
+        onClose={handleCloseViewer}
+      />
     </div>
   );
 }

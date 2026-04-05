@@ -1,5 +1,17 @@
 export const REQUIRED_COUNT = 5;
 
+const REQUIRED_KEYPOINTS = 2;
+
+const isNonEmptyString = (value) => typeof value === "string" && value.trim().length > 0;
+
+const toSafeString = (value, fallback) => {
+  if (!isNonEmptyString(value)) {
+    return fallback;
+  }
+
+  return value.trim();
+};
+
 export const buildFallbackFlashcard = (index) => {
   const number = index + 1;
   const fallbackPoints = [
@@ -20,6 +32,96 @@ export const buildFallbackFlashcards = () => Array.from(
   (_, index) => buildFallbackFlashcard(index)
 );
 
+const normalizeKeyPoints = (item) => {
+  const rawPoints = Array.isArray(item?.keyPoints)
+    ? item.keyPoints
+    : Array.isArray(item?.points)
+      ? item.points
+      : [];
+
+  const normalized = rawPoints
+    .filter((point) => isNonEmptyString(point))
+    .map((point) => point.trim())
+    .slice(0, REQUIRED_KEYPOINTS);
+
+  while (normalized.length < REQUIRED_KEYPOINTS) {
+    normalized.push("Point not available.");
+  }
+
+  return normalized;
+};
+
+const normalizeFlashcard = (item, index) => {
+  const fallback = buildFallbackFlashcard(index);
+  const keyPoints = normalizeKeyPoints(item);
+
+  return {
+    title: toSafeString(item?.title, fallback.title),
+    explanation: toSafeString(item?.explanation, fallback.explanation),
+    keyPoints,
+    points: keyPoints,
+    example: toSafeString(item?.example, fallback.example),
+    quiz: toSafeString(item?.quiz, fallback.quiz),
+  };
+};
+
+const tryParseJson = (value) => {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
+const extractCandidates = (rawText) => {
+  if (!isNonEmptyString(rawText)) {
+    return [];
+  }
+
+  const trimmed = rawText.trim();
+  const withoutFenceStart = trimmed.replace(/^```(?:json)?\s*/i, "");
+  const withoutFences = withoutFenceStart.replace(/\s*```$/i, "").trim();
+  const candidates = [withoutFences];
+
+  const firstArrayStart = withoutFences.indexOf("[");
+  const lastArrayEnd = withoutFences.lastIndexOf("]");
+  if (firstArrayStart !== -1 && lastArrayEnd !== -1 && lastArrayEnd > firstArrayStart) {
+    candidates.push(withoutFences.slice(firstArrayStart, lastArrayEnd + 1));
+  }
+
+  const firstObjectStart = withoutFences.indexOf("{");
+  const lastObjectEnd = withoutFences.lastIndexOf("}");
+  if (firstObjectStart !== -1 && lastObjectEnd !== -1 && lastObjectEnd > firstObjectStart) {
+    candidates.push(withoutFences.slice(firstObjectStart, lastObjectEnd + 1));
+  }
+
+  return [...new Set(candidates)];
+};
+
+const toArrayShape = (parsed) => {
+  if (Array.isArray(parsed)) {
+    return parsed;
+  }
+
+  if (!parsed || typeof parsed !== "object") {
+    return null;
+  }
+
+  if (Array.isArray(parsed.flashcards)) {
+    return parsed.flashcards;
+  }
+
+  const looksLikeCard = (
+    isNonEmptyString(parsed.explanation)
+    || Array.isArray(parsed.keyPoints)
+    || Array.isArray(parsed.points)
+    || isNonEmptyString(parsed.example)
+    || isNonEmptyString(parsed.quiz)
+  );
+
+  return looksLikeCard ? [parsed] : null;
+};
+
 export const parseFlashcards = (aiText, topic) => {
   console.log("Incoming Topic:", topic);
   console.log("Raw AI Response:", aiText);
@@ -28,45 +130,32 @@ export const parseFlashcards = (aiText, topic) => {
     throw new Error("Empty AI response");
   }
 
-  const start = aiText.indexOf('[');
-  const end = aiText.lastIndexOf(']');
-  
-  if (start === -1 || end === -1 || start > end) {
-    throw new Error("Invalid AI JSON format (Could not find array brackets)");
+  const candidates = extractCandidates(aiText);
+  let parsedArray = null;
+
+  for (const candidate of candidates) {
+    const parsed = tryParseJson(candidate);
+    const arrayShape = toArrayShape(parsed);
+
+    if (Array.isArray(arrayShape)) {
+      parsedArray = arrayShape;
+      break;
+    }
   }
 
-  const jsonString = aiText.slice(start, end + 1);
-  console.log("Extracted JSON:", jsonString);
-
-  let data;
-  try {
-    data = JSON.parse(jsonString);
-  } catch (err) {
-    console.error("JSON Parse Error:", err);
+  if (!Array.isArray(parsedArray)) {
     throw new Error("Invalid AI JSON format");
   }
 
-  console.log("Parsed Output:", data);
-
-  if (!Array.isArray(data)) {
-    throw new Error("Invalid AI JSON format (Not an array)");
-  }
-
-  const normalized = data.slice(0, REQUIRED_COUNT).map((item, index) => {
-    return {
-      title: typeof item?.title === "string" ? item.title : `Dynamic Flashcard ${index + 1}`,
-      explanation: typeof item?.explanation === "string" ? item.explanation : "Explanation will be added shortly.",
-      keyPoints: Array.isArray(item?.keyPoints) && item.keyPoints.length > 0 
-        ? item.keyPoints 
-        : (Array.isArray(item?.points) && item.points.length > 0 ? item.points : ["Point 1 pending", "Point 2 pending"]),
-      example: typeof item?.example === "string" ? item.example : "Example pending.",
-      quiz: typeof item?.quiz === "string" ? item.quiz : "Quiz pending."
-    };
-  });
+  const normalized = parsedArray
+    .slice(0, REQUIRED_COUNT)
+    .map((item, index) => normalizeFlashcard(item, index));
 
   while (normalized.length < REQUIRED_COUNT) {
-     normalized.push(buildFallbackFlashcard(normalized.length));
+    normalized.push(buildFallbackFlashcard(normalized.length));
   }
+
+  console.log("Parsed Output:", normalized);
 
   return normalized;
 };

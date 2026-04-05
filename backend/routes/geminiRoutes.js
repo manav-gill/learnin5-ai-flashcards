@@ -3,13 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const geminiRoutes = Router();
 
-const GEMINI_MODEL_CANDIDATES = [
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
-  "gemini-pro",
-];
-
-const getGeminiModel = (modelName) => {
+const getGeminiModel = () => {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
 
   if (!apiKey) {
@@ -19,47 +13,12 @@ const getGeminiModel = (modelName) => {
   const client = new GoogleGenerativeAI(apiKey);
 
   return client.getGenerativeModel({
-    model: modelName,
+    model: "gemini-2.5-flash",
     generationConfig: {
       temperature: 0.2,
+      responseMimeType: "application/json",
     },
   });
-};
-
-const generateWithBestAvailableModel = async (prompt) => {
-  let lastError = null;
-
-  for (const modelName of GEMINI_MODEL_CANDIDATES) {
-    const model = getGeminiModel(modelName);
-
-    try {
-      const result = await model.generateContent(prompt);
-      const text = result?.response?.text?.();
-
-      if (typeof text === "string" && text.trim()) {
-        return text.trim();
-      }
-
-      throw new Error("Empty response from Gemini");
-    } catch (error) {
-      lastError = error;
-      const status = error?.status || error?.code || null;
-
-      console.error("Gemini model request failed", {
-        model: modelName,
-        message: error?.message || "Unknown Gemini error",
-        status,
-        details: error?.response || error?.errorDetails || error?.details || null,
-        stack: error?.stack,
-      });
-
-      if (status !== 404) {
-        throw error;
-      }
-    }
-  }
-
-  throw lastError || new Error("Failed to generate response");
 };
 
 geminiRoutes.post("/generate", async (req, res) => {
@@ -73,7 +32,17 @@ geminiRoutes.post("/generate", async (req, res) => {
       });
     }
 
-    const text = await generateWithBestAvailableModel(prompt);
+    const model = getGeminiModel();
+    const strictPrompt = `${prompt}\n\nReturn ONLY valid JSON. Do not include any text outside JSON.`;
+    const result = await model.generateContent(strictPrompt);
+    const text = result?.response?.text?.();
+
+    if (typeof text !== "string" || !text.trim()) {
+      return res.status(502).json({
+        success: false,
+        message: "Empty response from Gemini",
+      });
+    }
 
     return res.status(200).json({
       success: true,

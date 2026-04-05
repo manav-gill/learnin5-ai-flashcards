@@ -1,7 +1,16 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000').replace(/\/+$/, '');
+import api from '../api/client';
 
 const AUTH_TOKEN_KEY = 'learnin5_token';
+const LEGACY_AUTH_TOKEN_KEY = 'token';
 const AUTH_USER_KEY = 'learnin5_user';
+
+const emitAuthSessionChanged = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.dispatchEvent(new Event('auth-session-changed'));
+};
 
 const safeJsonParse = (value) => {
   if (typeof value !== 'string' || !value) {
@@ -15,8 +24,6 @@ const safeJsonParse = (value) => {
   }
 };
 
-const buildApiUrl = (path) => `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
-
 const createApiError = (message, status = 0, data = null) => {
   const error = new Error(message || 'Request failed');
   error.status = status;
@@ -24,27 +31,12 @@ const createApiError = (message, status = 0, data = null) => {
   return error;
 };
 
-const parseApiResponse = async (response) => {
-  const rawBody = await response.text();
-  const data = safeJsonParse(rawBody);
+const normalizeAxiosError = (error) => {
+  const status = Number(error?.response?.status || 0);
+  const data = error?.response?.data || null;
+  const message = data?.message || error?.message || `Request failed (${status || 0})`;
 
-  if (!response.ok) {
-    throw createApiError(
-      data?.message || `Request failed (${response.status})`,
-      response.status,
-      data
-    );
-  }
-
-  if (!data || typeof data !== 'object') {
-    throw createApiError('Invalid server response', response.status, null);
-  }
-
-  if (data.success === false) {
-    throw createApiError(data.message || 'Request failed', response.status, data);
-  }
-
-  return data;
+  return createApiError(message, status, data);
 };
 
 const apiRequest = async (path, { method = 'GET', body, requiresAuth = false, headers = {} } = {}) => {
@@ -54,31 +46,32 @@ const apiRequest = async (path, { method = 'GET', body, requiresAuth = false, he
     throw createApiError('Please log in to continue.', 401, null);
   }
 
-  const requestHeaders = {
-    ...headers,
-  };
-
-  if (body !== undefined) {
-    requestHeaders['Content-Type'] = 'application/json';
-  }
-
-  if (requiresAuth && token) {
-    requestHeaders.Authorization = `Bearer ${token}`;
-  }
-
-  let response;
-
   try {
-    response = await fetch(buildApiUrl(path), {
+    const response = await api.request({
+      url: path.startsWith('/') ? path : `/${path}`,
       method,
-      headers: requestHeaders,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      data: body,
+      headers,
     });
-  } catch {
+
+    const data = response?.data;
+
+    if (!data || typeof data !== 'object') {
+      throw createApiError('Invalid server response', Number(response?.status || 0), null);
+    }
+
+    if (data.success === false) {
+      throw createApiError(data.message || 'Request failed', Number(response?.status || 0), data);
+    }
+
+    return data;
+  } catch (error) {
+    if (error?.response) {
+      throw normalizeAxiosError(error);
+    }
+
     throw createApiError('Unable to connect to the server. Please try again.', 0, null);
   }
-
-  return parseApiResponse(response);
 };
 
 export const getAuthToken = () => {
@@ -86,7 +79,9 @@ export const getAuthToken = () => {
     return '';
   }
 
-  return window.localStorage.getItem(AUTH_TOKEN_KEY) || '';
+  return window.localStorage.getItem(AUTH_TOKEN_KEY)
+    || window.localStorage.getItem(LEGACY_AUTH_TOKEN_KEY)
+    || '';
 };
 
 export const getAuthUser = () => {
@@ -110,11 +105,14 @@ export const setAuthSession = ({ token, user }) => {
 
   if (token) {
     window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+    window.localStorage.setItem(LEGACY_AUTH_TOKEN_KEY, token);
   }
 
   if (user && typeof user === 'object') {
     window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
   }
+
+  emitAuthSessionChanged();
 };
 
 export const clearAuthSession = () => {
@@ -123,7 +121,9 @@ export const clearAuthSession = () => {
   }
 
   window.localStorage.removeItem(AUTH_TOKEN_KEY);
+  window.localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
   window.localStorage.removeItem(AUTH_USER_KEY);
+  emitAuthSessionChanged();
 };
 
 export const isAuthenticated = () => Boolean(getAuthToken());
@@ -144,16 +144,30 @@ export const registerUser = async ({ name, email, password }) => {
 };
 
 export const loginUser = async ({ email, password }) => {
-  const data = await apiRequest('/api/auth/login', {
-    method: 'POST',
-    body: { email, password },
-  });
+  try {
+    const response = await api.post('/api/auth/login', { email, password });
+    const data = response?.data;
 
-  if (!data?.token || typeof data.token !== 'string') {
-    throw createApiError('Invalid login response', 500, data);
+    if (!data || typeof data !== 'object') {
+      throw createApiError('Invalid login response', Number(response?.status || 0), null);
+    }
+
+    if (data.success === false) {
+      throw createApiError(data.message || 'Request failed', Number(response?.status || 0), data);
+    }
+
+    if (!data?.token || typeof data.token !== 'string') {
+      throw createApiError('Invalid login response', Number(response?.status || 0), data);
+    }
+
+    return data;
+  } catch (error) {
+    if (error?.response) {
+      throw normalizeAxiosError(error);
+    }
+
+    throw createApiError('Unable to connect to the server. Please try again.', 0, null);
   }
-
-  return data;
 };
 
 export const generateFlashcards = async (topic) => {
@@ -191,14 +205,46 @@ export const saveFlashcards = async ({ topic, flashcards }) => {
 };
 
 export const getMyFlashcards = async () => {
-  const data = await apiRequest('/api/flashcards/my', {
+  const token = getAuthToken();
+
+  if (!token) {
+    throw createApiError('Please log in to continue.', 401, null);
+  }
+
+  try {
+    const response = await api.get('/api/flashcards/my');
+    const data = response?.data;
+
+    if (!data || typeof data !== 'object' || !Array.isArray(data?.data)) {
+      throw createApiError('Invalid saved flashcards response', Number(response?.status || 0), data);
+    }
+
+    if (data.success === false) {
+      throw createApiError(data.message || 'Request failed', Number(response?.status || 0), data);
+    }
+
+    return data.data;
+  } catch (error) {
+    if (error?.response) {
+      throw normalizeAxiosError(error);
+    }
+
+    throw createApiError('Unable to connect to the server. Please try again.', 0, null);
+  }
+};
+
+export const getDashboardData = async () => {
+  const data = await apiRequest('/api/dashboard', {
     method: 'GET',
     requiresAuth: true,
   });
 
-  if (!Array.isArray(data?.data)) {
-    throw createApiError('Invalid saved flashcards response', 500, data);
-  }
-
-  return data.data;
+  return {
+    totalFlashcards: Number.isFinite(Number(data?.totalFlashcards)) ? Number(data.totalFlashcards) : 0,
+    studyStreak: Number.isFinite(Number(data?.studyStreak)) ? Number(data.studyStreak) : 0,
+    mastered: Number.isFinite(Number(data?.mastered)) ? Number(data.mastered) : 0,
+    timeStudied: Number.isFinite(Number(data?.timeStudied)) ? Number(data.timeStudied) : 0,
+    userName: typeof data?.userName === 'string' && data.userName.trim() ? data.userName.trim() : 'Learner',
+    recentActivity: Array.isArray(data?.recentActivity) ? data.recentActivity : [],
+  };
 };

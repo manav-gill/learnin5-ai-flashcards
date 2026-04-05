@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GlassCard from '../components/GlassCard';
 import Button from '../components/Button';
@@ -6,107 +6,157 @@ import StatCard from '../components/StatCard';
 import {
   clearAuthSession,
   generateFlashcards,
+  getAuthToken,
+  getAuthUser,
+  getDashboardData,
   isUnauthorizedError,
   saveFlashcards,
 } from '../services/api';
 import './Dashboard.css';
 
-const STATS = [
-  {
-    icon: '📚',
-    label: 'Total Flashcards',
-    value: '248',
-    change: '+12 this week',
-    changeDirection: 'up',
-    accentColor: 'purple',
-  },
-  {
-    icon: '🔥',
-    label: 'Study Streak',
-    value: '14',
-    change: 'days in a row',
-    changeDirection: 'up',
-    accentColor: 'green',
-  },
-  {
-    icon: '✅',
-    label: 'Mastered',
-    value: '89',
-    change: '+5 today',
-    changeDirection: 'up',
-    accentColor: 'blue',
-  },
-  {
-    icon: '⏱️',
-    label: 'Time Studied',
-    value: '4.2h',
-    change: 'this week',
-    changeDirection: 'up',
-    accentColor: 'pink',
-  },
-];
-
-const ACTIVITIES = [
-  {
-    title: 'Completed "JavaScript Closures" deck',
-    time: '2 hours ago',
-    color: 'purple',
-  },
-  {
-    title: 'Created 8 new flashcards in "React Hooks"',
-    time: '5 hours ago',
-    color: 'green',
-  },
-  {
-    title: 'Mastered "CSS Grid Basics" deck',
-    time: 'Yesterday',
-    color: 'blue',
-  },
-  {
-    title: 'Started studying "Node.js Fundamentals"',
-    time: 'Yesterday',
-    color: 'pink',
-  },
-  {
-    title: 'Achieved 7-day study streak 🎉',
-    time: '2 days ago',
-    color: 'green',
-  },
-];
-
 const FLASHCARD_SKELETON_COUNT = 5;
+const ACTIVITY_COLORS = ['purple', 'green', 'blue', 'pink'];
+
+const sanitizeNumber = (value) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric >= 0 ? Math.round(numeric) : 0;
+};
+
+const formatTimeStudied = (minutesValue) => {
+  const minutes = sanitizeNumber(minutesValue);
+
+  if (minutes < 60) {
+    return `${minutes}m`;
+  }
+
+  const hours = minutes / 60;
+  const normalizedHours = Number.isInteger(hours) ? hours : Number(hours.toFixed(1));
+
+  return `${normalizedHours}h`;
+};
+
+const buildStats = (dashboardData) => {
+  const totalFlashcards = sanitizeNumber(dashboardData?.totalFlashcards);
+  const studyStreak = sanitizeNumber(dashboardData?.studyStreak);
+  const mastered = sanitizeNumber(dashboardData?.mastered);
+  const timeStudied = sanitizeNumber(dashboardData?.timeStudied);
+  const masteryRate = totalFlashcards > 0 ? Math.round((mastered / totalFlashcards) * 100) : 0;
+
+  return [
+    {
+      icon: '📚',
+      label: 'Total Flashcards',
+      value: String(totalFlashcards),
+      change: 'saved overall',
+      changeDirection: 'up',
+      accentColor: 'purple',
+    },
+    {
+      icon: '🔥',
+      label: 'Study Streak',
+      value: String(studyStreak),
+      change: `${studyStreak === 1 ? 'day' : 'days'} in a row`,
+      changeDirection: 'up',
+      accentColor: 'green',
+    },
+    {
+      icon: '✅',
+      label: 'Mastered',
+      value: String(mastered),
+      change: `${masteryRate}% mastery`,
+      changeDirection: 'up',
+      accentColor: 'blue',
+    },
+    {
+      icon: '⏱️',
+      label: 'Time Studied',
+      value: formatTimeStudied(timeStudied),
+      change: 'total',
+      changeDirection: 'up',
+      accentColor: 'pink',
+    },
+  ];
+};
+
+const normalizeRecentActivity = (recentActivity) => {
+  if (!Array.isArray(recentActivity)) {
+    return [];
+  }
+
+  return recentActivity
+    .map((item, index) => {
+      const title = typeof item?.title === 'string' ? item.title.trim() : '';
+      const time = typeof item?.time === 'string' ? item.time.trim() : '';
+      const color = ACTIVITY_COLORS.includes(item?.color) ? item.color : ACTIVITY_COLORS[index % ACTIVITY_COLORS.length];
+
+      if (!title) {
+        return null;
+      }
+
+      return {
+        title,
+        time: time || 'Recently',
+        color,
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 5);
+};
 
 const buildFallbackFlashcard = (index) => ({
   title: `Flashcard ${index + 1}`,
-  explanation: 'This flashcard summary is temporarily unavailable.',
-  points: ['Review the topic fundamentals.', 'Try generating the topic again.'],
-  example: 'Example is unavailable right now.',
-  quiz: 'What key idea should you review first?',
+  explanation: 'No explanation provided yet.',
+  keyPoints: ['Review the main concept.', 'Revise one practical example.'],
+  points: ['Review the main concept.', 'Revise one practical example.'],
+  example: 'No example provided yet.',
+  quiz: 'What is the key idea of this topic?',
 });
+
+const normalizeKeyPoints = (item, index) => {
+  const source = Array.isArray(item?.keyPoints)
+    ? item.keyPoints
+    : Array.isArray(item?.points)
+      ? item.points
+      : buildFallbackFlashcard(index).keyPoints;
+
+  const normalized = source
+    .filter((point) => typeof point === 'string' && point.trim())
+    .map((point) => point.trim())
+    .slice(0, 3);
+
+  while (normalized.length < 2) {
+    normalized.push('Point not available.');
+  }
+
+  return normalized;
+};
 
 const normalizeFlashcards = (flashcards) => {
   const source = Array.isArray(flashcards) ? flashcards : [];
 
   const normalized = source
     .slice(0, FLASHCARD_SKELETON_COUNT)
-    .map((item, index) => ({
-      title: typeof item?.title === 'string' && item.title.trim() ? item.title.trim() : buildFallbackFlashcard(index).title,
-      explanation:
-        typeof item?.explanation === 'string' && item.explanation.trim()
-          ? item.explanation.trim()
-          : buildFallbackFlashcard(index).explanation,
-      points: Array.isArray(item?.points)
-        ? item.points.filter((point) => typeof point === 'string' && point.trim()).slice(0, 3)
-        : buildFallbackFlashcard(index).points,
-      example:
-        typeof item?.example === 'string' && item.example.trim()
-          ? item.example.trim()
-          : buildFallbackFlashcard(index).example,
-      quiz:
-        typeof item?.quiz === 'string' && item.quiz.trim()
-          ? item.quiz.trim()
-          : buildFallbackFlashcard(index).quiz,
-    }));
+    .map((item, index) => {
+      const keyPoints = normalizeKeyPoints(item, index);
+
+      return {
+        title: typeof item?.title === 'string' && item.title.trim() ? item.title.trim() : buildFallbackFlashcard(index).title,
+        explanation:
+          typeof item?.explanation === 'string' && item.explanation.trim()
+            ? item.explanation.trim()
+            : buildFallbackFlashcard(index).explanation,
+        keyPoints,
+        points: keyPoints,
+        example:
+          typeof item?.example === 'string' && item.example.trim()
+            ? item.example.trim()
+            : buildFallbackFlashcard(index).example,
+        quiz:
+          typeof item?.quiz === 'string' && item.quiz.trim()
+            ? item.quiz.trim()
+            : buildFallbackFlashcard(index).quiz,
+      };
+    });
 
   while (normalized.length < FLASHCARD_SKELETON_COUNT) {
     normalized.push(buildFallbackFlashcard(normalized.length));
@@ -118,6 +168,7 @@ const normalizeFlashcards = (flashcards) => {
 export default function Dashboard() {
   const navigate = useNavigate();
   const topicInputRef = useRef(null);
+  const isMountedRef = useRef(true);
 
   const [topicInput, setTopicInput] = useState('');
   const [generatedTopic, setGeneratedTopic] = useState('');
@@ -125,8 +176,102 @@ export default function Dashboard() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState('');
   const [saveState, setSaveState] = useState('idle');
+  const [isDashboardLoading, setIsDashboardLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState('');
+  const [dashboardData, setDashboardData] = useState(() => ({
+    totalFlashcards: 0,
+    studyStreak: 0,
+    mastered: 0,
+    timeStudied: 0,
+    userName: getAuthUser()?.name || 'Learner',
+    recentActivity: [],
+  }));
 
   const hasGeneratedFlashcards = generatedFlashcards.length === FLASHCARD_SKELETON_COUNT;
+  const dashboardStats = buildStats(dashboardData);
+  const recentActivity = normalizeRecentActivity(dashboardData.recentActivity);
+
+  const loadDashboardData = useCallback(async () => {
+    if (!isMountedRef.current) {
+      return;
+    }
+
+    setIsDashboardLoading(true);
+    setDashboardError('');
+
+    if (!getAuthToken()) {
+      setDashboardData((current) => ({
+        ...current,
+        totalFlashcards: 0,
+        studyStreak: 0,
+        mastered: 0,
+        timeStudied: 0,
+        userName: getAuthUser()?.name || 'Learner',
+        recentActivity: [],
+      }));
+      setIsDashboardLoading(false);
+      return;
+    }
+
+    try {
+      const data = await getDashboardData();
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      setDashboardData({
+        totalFlashcards: sanitizeNumber(data?.totalFlashcards),
+        studyStreak: sanitizeNumber(data?.studyStreak),
+        mastered: sanitizeNumber(data?.mastered),
+        timeStudied: sanitizeNumber(data?.timeStudied),
+        userName: typeof data?.userName === 'string' && data.userName.trim()
+          ? data.userName.trim()
+          : getAuthUser()?.name || 'Learner',
+        recentActivity: Array.isArray(data?.recentActivity) ? data.recentActivity : [],
+      });
+    } catch (error) {
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      if (isUnauthorizedError(error)) {
+        clearAuthSession();
+        navigate('/auth', {
+          replace: true,
+          state: {
+            from: '/generate',
+            message: 'Please log in to continue.',
+          },
+        });
+        return;
+      }
+
+      setDashboardError(error?.message || 'Unable to load dashboard data right now.');
+    } finally {
+      if (isMountedRef.current) {
+        setIsDashboardLoading(false);
+      }
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    loadDashboardData();
+
+    window.addEventListener('auth-session-changed', loadDashboardData);
+    window.addEventListener('storage', loadDashboardData);
+
+    return () => {
+      window.removeEventListener('auth-session-changed', loadDashboardData);
+      window.removeEventListener('storage', loadDashboardData);
+    };
+  }, [loadDashboardData]);
 
   useEffect(() => {
     if (saveState !== 'success' && saveState !== 'error') {
@@ -234,11 +379,23 @@ export default function Dashboard() {
       {/* Welcome */}
       <div className="dashboard__welcome animate-fade-in">
         <h1 className="dashboard__greeting">
-          Welcome back, <span>Madhav</span> 👋
+          Welcome back, <span>{dashboardData.userName || 'Learner'}</span> 👋
         </h1>
         <p className="dashboard__subtitle">
           Generate, save, and revise exactly 5 flashcards for any topic in seconds.
         </p>
+
+        {isDashboardLoading && (
+          <p className="dashboard__data-state" role="status" aria-live="polite">
+            Loading your dashboard data...
+          </p>
+        )}
+
+        {!isDashboardLoading && dashboardError && (
+          <p className="dashboard__data-state dashboard__data-state--error" role="status" aria-live="polite">
+            {dashboardError}
+          </p>
+        )}
       </div>
 
       {/* Generator */}
@@ -291,7 +448,7 @@ export default function Dashboard() {
 
       {/* Stats */}
       <div className="dashboard__stats stagger-children">
-        {STATS.map((stat) => (
+        {dashboardStats.map((stat) => (
           <StatCard key={stat.label} {...stat} />
         ))}
       </div>
@@ -302,17 +459,27 @@ export default function Dashboard() {
         <div>
           <h3 className="dashboard__section-title">Recent Activity</h3>
           <GlassCard>
-            <div className="activity-list">
-              {ACTIVITIES.map((activity, i) => (
-                <div className="activity-item" key={i}>
-                  <div className={`activity-item__dot activity-item__dot--${activity.color}`} />
-                  <div className="activity-item__text">
-                    <div className="activity-item__title">{activity.title}</div>
-                    <div className="activity-item__time">{activity.time}</div>
+            {isDashboardLoading ? (
+              <p className="activity-list__empty" role="status" aria-live="polite">
+                Loading activity...
+              </p>
+            ) : recentActivity.length ? (
+              <div className="activity-list">
+                {recentActivity.map((activity, i) => (
+                  <div className="activity-item" key={`${activity.title}-${i}`}>
+                    <div className={`activity-item__dot activity-item__dot--${activity.color}`} />
+                    <div className="activity-item__text">
+                      <div className="activity-item__title">{activity.title}</div>
+                      <div className="activity-item__time">{activity.time}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="activity-list__empty">
+                No recent activity yet. Generate and save your first flashcards.
+              </p>
+            )}
           </GlassCard>
         </div>
 
@@ -429,7 +596,7 @@ export default function Dashboard() {
                 <div className="generated-flashcard__section">
                   <p className="generated-flashcard__label">Key points</p>
                   <ul className="generated-flashcard__list">
-                    {card.points.map((point, pointIndex) => (
+                    {(Array.isArray(card.keyPoints) ? card.keyPoints : card.points).map((point, pointIndex) => (
                       <li key={`${card.title}-${point}-${pointIndex}`}>{point}</li>
                     ))}
                   </ul>
