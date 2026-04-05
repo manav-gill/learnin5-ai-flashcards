@@ -9,6 +9,7 @@ async function startServer() {
   const mongoose = (await import("mongoose")).default;
   const rateLimit = (await import("express-rate-limit")).default;
   const { default: flashcardRoutes } = await import("./routes/flashcardRoutes.js");
+  const { default: geminiRoutes } = await import("./routes/geminiRoutes.js");
   const { default: authRoutes } = await import("./routes/authRoutes.js");
   const { JWT_SECRET, MONGO_URI, PORT } = await import("./config/env.js");
 
@@ -49,6 +50,7 @@ async function startServer() {
   app.use(apiLimiter);
 
   app.use("/api/flashcards", flashcardRoutes);
+  app.use("/api/gemini", geminiRoutes);
   app.use("/api/auth", authRoutes);
 
   app.get("/api/health", (req, res) => {

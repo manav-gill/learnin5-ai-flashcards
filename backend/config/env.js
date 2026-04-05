@@ -11,4 +11,4 @@ const readTrimmedEnv = (key) => {
 export const PORT = parsePort(process.env.PORT);
 export const MONGO_URI = readTrimmedEnv("MONGO_URI") || readTrimmedEnv("MONGODB_URL");
 export const JWT_SECRET = readTrimmedEnv("JWT_SECRET");
-export const OPENAI_API_KEY = readTrimmedEnv("OPENAI_API_KEY");
+export const GEMINI_API_KEY = readTrimmedEnv("GEMINI_API_KEY");

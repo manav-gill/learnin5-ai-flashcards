@@ -26,18 +26,41 @@ export const generateFlashcardsForTopic = async (topic) => {
   try {
     rawResponse = await fetchRawFlashcardResponse(topic);
   } catch (error) {
-    console.error("AI call failed", error.response?.data || error.message);
-    throw error; // Pass API errors up to controller to handle meaningful message
+    console.error("AI call failed, using fallback flashcards", {
+      topic: cacheKey,
+      message: error?.message || "Unknown AI error",
+      details: error?.response || error?.error || null,
+      stack: error?.stack,
+    });
+    return buildFallbackFlashcards();
   }
+
+  console.log("AI raw response", {
+    topic: cacheKey,
+    response: rawResponse,
+  });
 
   let parsedFlashcards = [];
 
   try {
     parsedFlashcards = parseFlashcards(rawResponse, topic);
   } catch (error) {
-    console.error("Flashcard parsing completely failed, switching to fallback flashcards", error);
+    console.error("Flashcard parsing failed, switching to fallback flashcards", {
+      topic: cacheKey,
+      message: error?.message || "Unknown parse error",
+      stack: error?.stack,
+    });
     parsedFlashcards = buildFallbackFlashcards();
   }
+
+  if (!Array.isArray(parsedFlashcards) || parsedFlashcards.length !== REQUIRED_COUNT) {
+    parsedFlashcards = buildFallbackFlashcards();
+  }
+
+  console.log("Parsed flashcards output", {
+    topic: cacheKey,
+    flashcards: parsedFlashcards,
+  });
 
   setCache(cacheKey, parsedFlashcards, CACHE_TTL_MS);
   return parsedFlashcards;

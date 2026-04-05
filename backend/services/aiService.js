@@ -1,21 +1,36 @@
-import OpenAI from "openai";
-import { OPENAI_API_KEY } from "../config/env.js";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GEMINI_API_KEY } from "../config/env.js";
 
-let openaiClient = null;
+let geminiClient = null;
 
+const GEMINI_MODEL_CANDIDATES = [
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-pro",
+];
 
-const getOpenAIClient = () => {
-  if (!OPENAI_API_KEY) {
-    throw new Error("Missing OPENAI_API_KEY in environment variables");
+const getGeminiClient = () => {
+  if (!GEMINI_API_KEY) {
+    throw new Error("Missing GEMINI_API_KEY in environment variables");
   }
 
-  if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: OPENAI_API_KEY,
-    });
+  if (!geminiClient) {
+    geminiClient = new GoogleGenerativeAI(GEMINI_API_KEY);
   }
 
-  return openaiClient;
+  return geminiClient;
+};
+
+const getGeminiModel = (modelName) => {
+  const client = getGeminiClient();
+
+  return client.getGenerativeModel({
+    model: modelName,
+    generationConfig: {
+      temperature: 0.2,
+      responseMimeType: "application/json",
+    },
+  });
 };
 
 const buildPrompt = (topic) => (
@@ -35,41 +50,38 @@ const buildPrompt = (topic) => (
 );
 
 export const fetchRawFlashcardResponse = async (topic) => {
-  const openai = getOpenAIClient();
+  const cacheKey = topic.trim().toLowerCase();
+  console.log("Requesting flashcards from Gemini", { topic: cacheKey });
 
-  try {
-    const cacheKey = topic.trim().toLowerCase();
-    console.log("Requesting flashcards from OpenAI", { topic: cacheKey });
+  let lastError = null;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.2,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You create beginner-friendly educational flashcards. Return ONLY valid JSON. Do not include explanations or text outside JSON.",
-        },
-        {
-          role: "user",
-          content: buildPrompt(topic),
-        },
-      ],
-    });
+  for (const modelName of GEMINI_MODEL_CANDIDATES) {
+    const model = getGeminiModel(modelName);
 
-    return completion.choices?.[0]?.message?.content ?? "";
-  } catch (error) {
-    const providerPayload = error?.response?.data || error?.error || null;
-    const requestId = error?.request_id || error?.headers?.["x-request-id"] || null;
+    try {
+      const prompt = buildPrompt(topic);
+      const result = await model.generateContent(prompt);
+      const rawText = result?.response?.text?.();
 
-    console.error("OpenAI request failed", {
-      message: error?.message || "Unknown OpenAI error",
-      status: error?.status || error?.response?.status || null,
-      requestId,
-      providerPayload,
-      stack: error?.stack,
-    });
+      return typeof rawText === "string" ? rawText.trim() : "";
+    } catch (error) {
+      lastError = error;
+      const status = error?.status || error?.code || null;
+      const isNotFound = status === 404;
 
-    throw error;
+      console.error("Gemini model request failed", {
+        model: modelName,
+        message: error?.message || "Unknown Gemini error",
+        status,
+        providerPayload: error?.response || error?.errorDetails || error?.details || null,
+        stack: error?.stack,
+      });
+
+      if (!isNotFound) {
+        throw error;
+      }
+    }
   }
+
+  throw lastError || new Error("Failed to generate Gemini response");
 };
