@@ -130,6 +130,57 @@ const GENERATED_FLASHCARDS = [
   },
 ];
 
+const SAVED_FLASHCARDS_STORAGE_KEY = 'learnin5_saved_flashcards';
+
+const readStoredSavedTopics = () => {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(SAVED_FLASHCARDS_STORAGE_KEY);
+
+    if (!rawValue) {
+      return [];
+    }
+
+    const parsedValue = JSON.parse(rawValue);
+    return Array.isArray(parsedValue) ? parsedValue : [];
+  } catch {
+    return [];
+  }
+};
+
+const persistSavedTopic = (flashcards) => {
+  if (!Array.isArray(flashcards) || flashcards.length === 0 || typeof window === 'undefined') {
+    return;
+  }
+
+  const firstCard = flashcards[0];
+  const topicName = typeof firstCard?.title === 'string' && firstCard.title.trim()
+    ? firstCard.title.trim()
+    : 'Generated topic';
+  const previewText = typeof firstCard?.explanation === 'string' && firstCard.explanation.trim()
+    ? firstCard.explanation.trim()
+    : 'Review this saved flashcard set any time.';
+
+  const savedTopic = {
+    id: `saved-${Date.now()}`,
+    topic: topicName,
+    preview: previewText,
+    savedAt: new Date().toISOString(),
+  };
+
+  const existingTopics = readStoredSavedTopics().filter((item) => item && typeof item === 'object');
+  const nextTopics = [savedTopic, ...existingTopics].slice(0, 24);
+
+  try {
+    window.localStorage.setItem(SAVED_FLASHCARDS_STORAGE_KEY, JSON.stringify(nextTopics));
+  } catch {
+    // Keep UI responsive even when localStorage is unavailable.
+  }
+};
+
 export default function Dashboard() {
   const hasGeneratedFlashcards = GENERATED_FLASHCARDS.length === 5;
   const [isSaving, setIsSaving] = useState(false);
@@ -157,6 +208,7 @@ export default function Dashboard() {
     setIsSaving(true);
 
     window.setTimeout(() => {
+      persistSavedTopic(GENERATED_FLASHCARDS);
       setIsSaving(false);
       setSaveSuccess(true);
     }, 550);

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import './Sidebar.css';
 
 const NAV_ITEMS = [
@@ -56,10 +55,7 @@ const NAV_ITEMS = [
 ];
 
 export default function Sidebar({ activeItem = 'dashboard', onNavigate }) {
-  const [active, setActive] = useState(activeItem);
-
   const handleClick = (id) => {
-    setActive(id);
     onNavigate?.(id);
   };
 
@@ -75,7 +71,7 @@ export default function Sidebar({ activeItem = 'dashboard', onNavigate }) {
         {NAV_ITEMS.map((item) => (
           <button
             key={item.id}
-            className={`sidebar__nav-item ${active === item.id ? 'sidebar__nav-item--active' : ''}`}
+            className={`sidebar__nav-item ${activeItem === item.id ? 'sidebar__nav-item--active' : ''}`}
             onClick={() => handleClick(item.id)}
             title={item.label}
             aria-label={item.label}
