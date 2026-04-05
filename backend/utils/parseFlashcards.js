@@ -110,13 +110,6 @@ const toFlashcardArray = (parsed) => {
   return null;
 };
 
-const tryParseJson = (text) => {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-};
 
 const extractJsonCandidates = (rawText) => {
   if (typeof rawText !== "string") {
@@ -131,33 +124,48 @@ const extractJsonCandidates = (rawText) => {
   const withoutFenceStart = trimmed.replace(/^```(?:json)?\s*/i, "");
   const withoutFences = withoutFenceStart.replace(/\s*```$/i, "").trim();
 
-  const candidates = [withoutFences];
+  const candidates = [];
   const firstBracket = withoutFences.indexOf("[");
   const lastBracket = withoutFences.lastIndexOf("]");
 
   if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
     candidates.push(withoutFences.slice(firstBracket, lastBracket + 1));
   }
+  
+  candidates.push(withoutFences);
 
   return candidates;
 };
 
 export const parseFlashcards = (rawText) => {
+  console.log("=== AI RAW RESPONSE BEFORE PARSING ===");
+  console.log(rawText);
+  console.log("======================================");
+
   const candidates = extractJsonCandidates(rawText);
   let parsedArray = null;
 
   for (const candidate of candidates) {
-    const parsed = tryParseJson(candidate);
+    let parsed = null;
+    try {
+      parsed = JSON.parse(candidate);
+    } catch (err) {
+      console.warn(`JSON parsing failed for candidate. Reason: ${err.message}`);
+      continue;
+    }
 
     const flashcardArray = toFlashcardArray(parsed);
 
-    if (Array.isArray(flashcardArray)) {
+    if (Array.isArray(flashcardArray) && flashcardArray.length > 0) {
       parsedArray = flashcardArray;
       break;
+    } else {
+      console.warn("Parsed candidate is not a valid flashcard array.", parsed);
     }
   }
 
   if (!parsedArray) {
+    console.error("Critical Error: Failed to parse any valid AI response. Falling back.");
     return buildFallbackFlashcards();
   }
 
@@ -166,8 +174,13 @@ export const parseFlashcards = (rawText) => {
     .map((item, index) => normalizeFlashcard(item, index));
 
   while (normalized.length < REQUIRED_COUNT) {
+    console.warn(`Partial data received. Expected ${REQUIRED_COUNT}, got ${normalized.length}. Filling with fallback.`);
     normalized.push(buildFallbackFlashcard(normalized.length));
   }
+
+  console.log("=== PARSED & NORMALIZED FLASHCARDS ===");
+  console.log(JSON.stringify(normalized, null, 2));
+  console.log("======================================");
 
   return normalized;
 };

@@ -3,39 +3,6 @@ import { OPENAI_API_KEY } from "../config/env.js";
 
 let openaiClient = null;
 
-const FLASHCARD_RESPONSE_SCHEMA = {
-  name: "flashcard_generation",
-  strict: true,
-  schema: {
-    type: "object",
-    additionalProperties: false,
-    properties: {
-      flashcards: {
-        type: "array",
-        minItems: 5,
-        maxItems: 5,
-        items: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            title: { type: "string" },
-            explanation: { type: "string" },
-            keyPoints: {
-              type: "array",
-              minItems: 2,
-              maxItems: 2,
-              items: { type: "string" },
-            },
-            example: { type: "string" },
-            quiz: { type: "string" },
-          },
-          required: ["title", "explanation", "keyPoints", "example", "quiz"],
-        },
-      },
-    },
-    required: ["flashcards"],
-  },
-};
 
 const getOpenAIClient = () => {
   if (!OPENAI_API_KEY) {
@@ -52,9 +19,18 @@ const getOpenAIClient = () => {
 };
 
 const buildPrompt = (topic) => (
-  `Generate exactly 5 flashcards about: ${topic}. Each flashcard must have: `
-  + "title, explanation (max 40 words), keyPoints (array of exactly 2 items), example, quiz. "
-  + "Return only structured JSON that matches the provided schema."
+  `Generate exactly 5 flashcards about: ${topic}.\n` +
+  `Return ONLY valid JSON. Do not include explanations or text outside JSON.\n` +
+  `Use this format:\n` +
+  `[\n` +
+  `  {\n` +
+  `    "title": "...",\n` +
+  `    "explanation": "...",\n` +
+  `    "keyPoints": ["...", "..."],\n` +
+  `    "example": "...",\n` +
+  `    "quiz": "..."\n` +
+  `  }\n` +
+  `]`
 );
 
 export const fetchRawFlashcardResponse = async (topic) => {
@@ -67,15 +43,11 @@ export const fetchRawFlashcardResponse = async (topic) => {
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.2,
-      response_format: {
-        type: "json_schema",
-        json_schema: FLASHCARD_RESPONSE_SCHEMA,
-      },
       messages: [
         {
           role: "system",
           content:
-            "You create beginner-friendly educational flashcards. Use only valid JSON output.",
+            "You create beginner-friendly educational flashcards. Return ONLY valid JSON. Do not include explanations or text outside JSON.",
         },
         {
           role: "user",
