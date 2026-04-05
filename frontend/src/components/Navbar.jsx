@@ -1,11 +1,11 @@
 import './Navbar.css';
 
-export default function Navbar() {
+export default function Navbar({ title = 'Dashboard' }) {
   return (
     <header className="navbar">
       {/* Left — Page title / breadcrumb area */}
       <div className="navbar__left">
-        <h2 className="navbar__title">Dashboard</h2>
+        <h2 className="navbar__title">{title}</h2>
       </div>
 
       {/* Center — Search */}

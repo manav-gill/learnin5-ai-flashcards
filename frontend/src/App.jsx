@@ -12,9 +12,15 @@ const NAV_ROUTES = {
   saved: '/saved',
 };
 
+const NAV_TITLES = {
+  dashboard: 'Dashboard',
+  saved: 'Saved Flashcards',
+};
+
 // Main Application Layout (Sidebar + Content)
 function AppLayout({ activeItem = 'dashboard', children }) {
   const navigate = useNavigate();
+  const pageTitle = NAV_TITLES[activeItem] || 'Learn in 5';
 
   const handleSidebarNavigate = (itemId) => {
     const route = NAV_ROUTES[itemId];
@@ -28,7 +34,7 @@ function AppLayout({ activeItem = 'dashboard', children }) {
     <div className="app-layout">
       <Sidebar activeItem={activeItem} onNavigate={handleSidebarNavigate} />
       <div className="app-body">
-        <Navbar />
+        <Navbar title={pageTitle} />
         <main className="app-main">
           {children}
         </main>

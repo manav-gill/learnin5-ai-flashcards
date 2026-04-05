@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import GlassCard from '../components/GlassCard';
 import Button from '../components/Button';
 import './SavedFlashcards.css';
 
 const SAVED_FLASHCARDS_STORAGE_KEY = 'learnin5_saved_flashcards';
+const SAVED_TOPICS_SKELETON_COUNT = 4;
 
 const formatSavedDate = (isoDate) => {
   const date = new Date(isoDate);
@@ -21,23 +22,23 @@ const formatSavedDate = (isoDate) => {
 
 const loadSavedTopics = () => {
   if (typeof window === 'undefined') {
-    return [];
+    return { topics: [], hasError: false };
   }
 
   try {
     const rawValue = window.localStorage.getItem(SAVED_FLASHCARDS_STORAGE_KEY);
 
     if (!rawValue) {
-      return [];
+      return { topics: [], hasError: false };
     }
 
     const parsedValue = JSON.parse(rawValue);
 
     if (!Array.isArray(parsedValue)) {
-      return [];
+      return { topics: [], hasError: true };
     }
 
-    return parsedValue
+    const topics = parsedValue
       .filter((item) => item && typeof item === 'object')
       .map((item, index) => ({
         id: typeof item.id === 'string' ? item.id : `saved-topic-${index}`,
@@ -47,13 +48,26 @@ const loadSavedTopics = () => {
           : 'No preview available yet.',
         savedAt: typeof item.savedAt === 'string' ? item.savedAt : '',
       }));
+
+    return { topics, hasError: false };
   } catch {
-    return [];
+    return { topics: [], hasError: true };
   }
 };
 
 export default function SavedFlashcards() {
-  const [savedTopics] = useState(() => loadSavedTopics());
+  const [{ topics: savedTopics, hasError }] = useState(() => loadSavedTopics());
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadingTimer = window.setTimeout(() => {
+      setIsLoading(false);
+    }, 420);
+
+    return () => {
+      window.clearTimeout(loadingTimer);
+    };
+  }, []);
 
   return (
     <div className="saved-flashcards-page">
@@ -64,7 +78,26 @@ export default function SavedFlashcards() {
         </p>
       </header>
 
-      {savedTopics.length === 0 ? (
+      {isLoading ? (
+        <section className="saved-topics-grid" aria-label="Loading saved flashcards">
+          {Array.from({ length: SAVED_TOPICS_SKELETON_COUNT }, (_, index) => (
+            <GlassCard key={`saved-topic-skeleton-${index}`} className="saved-topic-card saved-topic-card--skeleton">
+              <div className="skeleton saved-topic-card__skeleton-name" />
+              <div className="skeleton saved-topic-card__skeleton-date" />
+              <div className="skeleton saved-topic-card__skeleton-line" />
+              <div className="skeleton saved-topic-card__skeleton-line saved-topic-card__skeleton-line--short" />
+              <div className="skeleton saved-topic-card__skeleton-btn" />
+            </GlassCard>
+          ))}
+        </section>
+      ) : hasError ? (
+        <GlassCard className="saved-flashcards-page__empty saved-flashcards-page__empty--error" compact>
+          <p className="saved-flashcards-page__empty-title">Could not load saved flashcards</p>
+          <p className="saved-flashcards-page__empty-subtitle">
+            Please refresh the page and try again.
+          </p>
+        </GlassCard>
+      ) : savedTopics.length === 0 ? (
         <GlassCard className="saved-flashcards-page__empty" compact>
           <p className="saved-flashcards-page__empty-title">No saved flashcards yet</p>
           <p className="saved-flashcards-page__empty-subtitle">
