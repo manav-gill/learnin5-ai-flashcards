@@ -11,10 +11,11 @@
   align-items: center;
   justify-content: space-between;
   padding-inline: var(--space-xl);
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.45);
   backdrop-filter: blur(var(--glass-blur-heavy));
   -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
-  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.58);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.65), 0 12px 30px rgba(15, 23, 42, 0.05);
   gap: var(--space-lg);
 }
 
@@ -24,10 +25,10 @@
 }
 
 .navbar__title {
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1.2rem;
+  font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 /* ── Center — Search ───────────────────────────────────────── */
@@ -42,18 +43,19 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  background: rgba(255, 255, 255, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.62);
   border-radius: var(--radius-full);
-  padding: 0 var(--space-md);
-  height: 42px;
+  padding: 0 14px;
+  height: 44px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62), 0 6px 14px rgba(15, 23, 42, 0.05);
   transition: all var(--transition-base);
 }
 
 .navbar__search:focus-within {
-  background: rgba(255, 255, 255, 0.75);
-  border-color: rgba(167, 139, 250, 0.3);
-  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.08);
+  background: rgba(255, 255, 255, 0.84);
+  border-color: rgba(139, 92, 246, 0.35);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1), 0 10px 22px rgba(99, 102, 241, 0.12);
 }
 
 .navbar__search-icon {
@@ -67,7 +69,7 @@
   outline: none;
   background: transparent;
   font-family: var(--font-family);
-  font-size: 0.875rem;
+  font-size: var(--fs-sm);
   color: var(--text-primary);
 }
 
@@ -78,13 +80,13 @@
 .navbar__search-shortcut {
   flex-shrink: 0;
   font-family: var(--font-family);
-  font-size: 0.6875rem;
+  font-size: 0.7rem;
   font-weight: 500;
   color: var(--text-tertiary);
-  background: rgba(0, 0, 0, 0.04);
+  background: rgba(15, 23, 42, 0.05);
   padding: 2px 6px;
   border-radius: var(--radius-xs);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(15, 23, 42, 0.08);
   user-select: none;
 }
 
@@ -99,8 +101,8 @@
 /* ── Icon Button ───────────────────────────────────────────── */
 .navbar__icon-btn {
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -109,12 +111,14 @@
   border-radius: var(--radius-md);
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .navbar__icon-btn:hover {
-  background: rgba(167, 139, 250, 0.08);
+  background: rgba(139, 92, 246, 0.1);
   color: var(--text-primary);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
 }
 
 .navbar__notification-dot {
@@ -141,16 +145,17 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: 5px 10px 5px 5px;
+  padding: 5px 12px 5px 5px;
   border: none;
   background: transparent;
   border-radius: var(--radius-full);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .navbar__profile:hover {
-  background: rgba(167, 139, 250, 0.06);
+  background: rgba(139, 92, 246, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .navbar__avatar {
@@ -163,8 +168,9 @@
   justify-content: center;
   color: white;
   font-weight: 600;
-  font-size: 0.8125rem;
+  font-size: var(--fs-sm);
   flex-shrink: 0;
+  box-shadow: 0 8px 18px rgba(99, 102, 241, 0.25);
 }
 
 .navbar__user-info {
@@ -175,13 +181,13 @@
 }
 
 .navbar__user-name {
-  font-size: 0.8125rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .navbar__user-role {
-  font-size: 0.6875rem;
+  font-size: var(--fs-xs);
   color: var(--text-tertiary);
   font-weight: 400;
 }
@@ -201,6 +207,7 @@
   .navbar {
     padding-inline: var(--space-md);
     gap: var(--space-sm);
+    height: 68px;
   }
 
   .navbar__title {

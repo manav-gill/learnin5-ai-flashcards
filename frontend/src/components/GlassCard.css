@@ -7,12 +7,13 @@
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), var(--shadow-soft);
   border-radius: var(--radius-xl);
   padding: var(--space-lg);
-  box-shadow: var(--shadow-soft);
-  transition: all var(--transition-base);
+  transition: transform var(--transition-base), box-shadow var(--transition-base), background var(--transition-base), border-color var(--transition-base);
   position: relative;
   overflow: hidden;
+  isolation: isolate;
 }
 
 .glass-card::before {
@@ -22,18 +23,23 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.6),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+}
+
+.glass-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--glass-sheen);
+  opacity: 0.55;
+  z-index: -1;
 }
 
 .glass-card--hoverable:hover {
   background: var(--glass-bg-hover);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.78);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.64), var(--shadow-md);
+  transform: translateY(-3px);
 }
 
 .glass-card--compact {

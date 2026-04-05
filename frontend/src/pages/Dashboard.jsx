@@ -131,6 +131,8 @@ const GENERATED_FLASHCARDS = [
 ];
 
 const SAVED_FLASHCARDS_STORAGE_KEY = 'learnin5_saved_flashcards';
+const FLASHCARD_SKELETON_COUNT = 5;
+const FLASHCARD_GENERATION_DELAY_MS = 850;
 
 const readStoredSavedTopics = () => {
   if (typeof window === 'undefined') {
@@ -153,7 +155,7 @@ const readStoredSavedTopics = () => {
 
 const persistSavedTopic = (flashcards) => {
   if (!Array.isArray(flashcards) || flashcards.length === 0 || typeof window === 'undefined') {
-    return;
+    return { ok: false };
   }
 
   const firstCard = flashcards[0];
@@ -176,42 +178,74 @@ const persistSavedTopic = (flashcards) => {
 
   try {
     window.localStorage.setItem(SAVED_FLASHCARDS_STORAGE_KEY, JSON.stringify(nextTopics));
+    return { ok: true };
   } catch {
-    // Keep UI responsive even when localStorage is unavailable.
+    return { ok: false };
   }
 };
 
 export default function Dashboard() {
   const hasGeneratedFlashcards = GENERATED_FLASHCARDS.length === 5;
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(true);
+  const [generationError, setGenerationError] = useState('');
+  const [saveState, setSaveState] = useState('idle');
 
   useEffect(() => {
-    if (!saveSuccess) {
+    const generationTimer = window.setTimeout(() => {
+      if (hasGeneratedFlashcards) {
+        setGenerationError('');
+      } else {
+        setGenerationError('We could not load your generated flashcards. Please try again.');
+      }
+
+      setIsGenerating(false);
+    }, FLASHCARD_GENERATION_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(generationTimer);
+    };
+  }, [hasGeneratedFlashcards]);
+
+  useEffect(() => {
+    if (saveState !== 'success' && saveState !== 'error') {
       return undefined;
     }
 
     const feedbackTimer = window.setTimeout(() => {
-      setSaveSuccess(false);
-    }, 2400);
+      setSaveState('idle');
+    }, 2600);
 
     return () => {
       window.clearTimeout(feedbackTimer);
     };
-  }, [saveSuccess]);
+  }, [saveState]);
 
   const handleSaveFlashcards = () => {
-    if (!hasGeneratedFlashcards || isSaving) {
+    if (!hasGeneratedFlashcards || isGenerating || saveState === 'saving') {
       return;
     }
 
-    setIsSaving(true);
+    setSaveState('saving');
 
     window.setTimeout(() => {
-      persistSavedTopic(GENERATED_FLASHCARDS);
-      setIsSaving(false);
-      setSaveSuccess(true);
+      const saveResult = persistSavedTopic(GENERATED_FLASHCARDS);
+      setSaveState(saveResult.ok ? 'success' : 'error');
     }, 550);
+  };
+
+  const handleRetryGeneration = () => {
+    setGenerationError('');
+    setIsGenerating(true);
+
+    window.setTimeout(() => {
+      if (hasGeneratedFlashcards) {
+        setGenerationError('');
+      } else {
+        setGenerationError('We could not load your generated flashcards. Please try again.');
+      }
+
+      setIsGenerating(false);
+    }, FLASHCARD_GENERATION_DELAY_MS);
   };
 
   return (
@@ -287,58 +321,92 @@ export default function Dashboard() {
               <Button
                 variant="secondary"
                 size="sm"
-                className={`generated-flashcards__save-btn ${saveSuccess ? 'generated-flashcards__save-btn--saved' : ''}`}
+                className={`generated-flashcards__save-btn ${saveState === 'success' ? 'generated-flashcards__save-btn--saved' : ''}`}
                 onClick={handleSaveFlashcards}
-                disabled={isSaving}
+                disabled={saveState === 'saving' || isGenerating || Boolean(generationError)}
               >
-                {isSaving ? 'Saving...' : saveSuccess ? 'Saved' : 'Save Flashcards'}
+                {saveState === 'saving' ? 'Saving...' : saveState === 'success' ? 'Saved' : saveState === 'error' ? 'Try Again' : 'Save Flashcards'}
               </Button>
             )}
           </div>
         </div>
 
-        {saveSuccess && (
-          <p className="generated-flashcards__save-feedback" role="status" aria-live="polite">
+        {saveState === 'success' && (
+          <p className="generated-flashcards__save-feedback generated-flashcards__save-feedback--success" role="status" aria-live="polite">
             Flashcards saved successfully.
           </p>
         )}
 
-        <div className="generated-flashcards__grid">
-          {GENERATED_FLASHCARDS.map((card, index) => (
-            <GlassCard
-              key={card.title}
-              className="generated-flashcard"
-              hoverable
-              style={{ '--flashcard-delay': `${index * 90}ms` }}
-            >
-              <h4 className="generated-flashcard__title">{card.title}</h4>
+        {saveState === 'error' && (
+          <p className="generated-flashcards__save-feedback generated-flashcards__save-feedback--error" role="status" aria-live="polite">
+            Could not save flashcards right now. Please try again.
+          </p>
+        )}
 
-              <div className="generated-flashcard__section">
-                <p className="generated-flashcard__label">Explanation</p>
-                <p className="generated-flashcard__text">{card.explanation}</p>
-              </div>
+        {isGenerating ? (
+          <div className="generated-flashcards__grid" aria-label="Loading generated flashcards">
+            {Array.from({ length: FLASHCARD_SKELETON_COUNT }, (_, index) => (
+              <GlassCard
+                key={`flashcard-skeleton-${index}`}
+                className="generated-flashcard generated-flashcard--skeleton"
+                style={{ '--flashcard-delay': `${index * 70}ms` }}
+              >
+                <div className="skeleton generated-flashcard__skeleton-title" />
+                <div className="skeleton generated-flashcard__skeleton-line" />
+                <div className="skeleton generated-flashcard__skeleton-line generated-flashcard__skeleton-line--short" />
+                <div className="skeleton generated-flashcard__skeleton-line" />
+                <div className="skeleton generated-flashcard__skeleton-line" />
+                <div className="skeleton generated-flashcard__skeleton-line generated-flashcard__skeleton-line--mid" />
+                <div className="skeleton generated-flashcard__skeleton-quiz" />
+              </GlassCard>
+            ))}
+          </div>
+        ) : generationError ? (
+          <GlassCard className="generated-flashcards__state generated-flashcards__state--error" compact>
+            <h4 className="generated-flashcards__state-title">Unable to load generated flashcards</h4>
+            <p className="generated-flashcards__state-text">{generationError}</p>
+            <Button variant="secondary" size="sm" onClick={handleRetryGeneration}>
+              Retry
+            </Button>
+          </GlassCard>
+        ) : (
+          <div className="generated-flashcards__grid">
+            {GENERATED_FLASHCARDS.map((card, index) => (
+              <GlassCard
+                key={card.title}
+                className="generated-flashcard"
+                hoverable
+                style={{ '--flashcard-delay': `${index * 90}ms` }}
+              >
+                <h4 className="generated-flashcard__title">{card.title}</h4>
 
-              <div className="generated-flashcard__section">
-                <p className="generated-flashcard__label">Key points</p>
-                <ul className="generated-flashcard__list">
-                  {card.points.map((point) => (
-                    <li key={`${card.title}-${point}`}>{point}</li>
-                  ))}
-                </ul>
-              </div>
+                <div className="generated-flashcard__section">
+                  <p className="generated-flashcard__label">Explanation</p>
+                  <p className="generated-flashcard__text">{card.explanation}</p>
+                </div>
 
-              <div className="generated-flashcard__section">
-                <p className="generated-flashcard__label">Example</p>
-                <p className="generated-flashcard__example">{card.example}</p>
-              </div>
+                <div className="generated-flashcard__section">
+                  <p className="generated-flashcard__label">Key points</p>
+                  <ul className="generated-flashcard__list">
+                    {card.points.map((point) => (
+                      <li key={`${card.title}-${point}`}>{point}</li>
+                    ))}
+                  </ul>
+                </div>
 
-              <div className="generated-flashcard__quiz">
-                <p className="generated-flashcard__label generated-flashcard__label--quiz">Quiz</p>
-                <p className="generated-flashcard__quiz-text">{card.quiz}</p>
-              </div>
-            </GlassCard>
-          ))}
-        </div>
+                <div className="generated-flashcard__section">
+                  <p className="generated-flashcard__label">Example</p>
+                  <p className="generated-flashcard__example">{card.example}</p>
+                </div>
+
+                <div className="generated-flashcard__quiz">
+                  <p className="generated-flashcard__label generated-flashcard__label--quiz">Quiz</p>
+                  <p className="generated-flashcard__quiz-text">{card.quiz}</p>
+                </div>
+              </GlassCard>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
